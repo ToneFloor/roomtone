@@ -8,7 +8,7 @@ Twelve WebGL2 shader presets, word-by-word karaoke, kinetic typography on the
 beat, and a colour palette pulled out of the album art so the room follows the
 record rather than the app.
 
-Built by Robin.
+**Built by me, utilizing claude.**
 
 ---
 
@@ -74,12 +74,11 @@ software if anything about it feels uncomfortable.
   Windows 11 and on up-to-date Windows 10).
 
 ## Setting up Spotify
+**YOU NEED SPOTIFY PREMIUM**
 
 ROOMTONE does not ship with a Client ID, and this is deliberate rather than an
 omission. Spotify applications start in *development mode*, which allows at most
-25 hand-added users — so a shared ID genuinely would not work for you. There is
-no client secret anywhere in this project: authentication uses the PKCE flow,
-which does not need one.
+25 hand-added users.
 
 1. Open the [Spotify developer dashboard](https://developer.spotify.com/dashboard)
    and create an app.
