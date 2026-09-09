@@ -303,6 +303,12 @@ pub(crate) fn base64_encode(bytes: &[u8]) -> String {
     out
 }
 
+/// The version from Cargo.toml, so the interface never has to hardcode one.
+#[tauri::command]
+fn app_version() -> &'static str {
+    env!("CARGO_PKG_VERSION")
+}
+
 /// Record something the interface noticed — an uncaught error, a rejected
 /// promise — in the same log as everything else.
 ///
@@ -580,6 +586,7 @@ pub fn run() {
             spotify_disconnect,
             client_id_present,
             set_client_id,
+            app_version,
             ui_log,
             ui_state_get,
             ui_state_set,

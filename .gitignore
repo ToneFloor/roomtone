@@ -25,3 +25,7 @@ desktop.ini
 # Editors
 .vscode/
 .idea/
+
+# Release artefacts, produced by 
+pm run tauri build
+/release/

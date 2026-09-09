@@ -777,7 +777,7 @@ class Roomtone {
       'playerFrame', 'panel', 'slider', 'sliderVal', 'csrc', 'kbhint',
       'editArt', 'editArtTex', 'editScan', 'editMeta',
       'specLayer', 'specRing', 'specHalo', 'sbar', 'flowCanvas', 'pthumb', 'pfx', 'plabel', 'ponly', 'idleTag', 'stageWrap',
-      'autoBtn', 'autoTrack', 'autoKnob', 'srcNow', 'swBtn', 'swTrack', 'swKnob',
+      'autoBtn', 'autoTrack', 'autoKnob', 'srcNow', 'swBtn', 'swTrack', 'swKnob', 'verline',
       'coverTag', 'lyrBloom', 'lyrScroll', 'lyrLine', 'lyrText', 'lyrTime', 'tourNum', 'tourTitle', 'tourBody', 'tourKeys', 'tourNext', 'tdot',
       'trayGlow', 'trayIcon', 'dbg', 'meter', 'shDot', 'dbgPanel'].forEach((k) => {
       this.n[k] = Array.from(r.querySelectorAll('[data-r="' + k + '"]'));
@@ -868,6 +868,11 @@ class Roomtone {
     });
     this.each('swBtn', (e) => {
       e.style.borderColor = swOn[e.getAttribute('data-v')] ? acc : 'rgba(255,255,255,0.10)';
+    });
+
+    this.each('verline', (e) => {
+      e.textContent = 'AUDIO-REACTIVE ROOM LIGHTING · WIN64'
+        + (this.version ? ' · v' + this.version : '');
     });
 
     const auto = !!this.autostart;
@@ -2277,6 +2282,13 @@ async function refreshInfo() {
   } catch (e) { /* first run, or an unreadable config — carry on with defaults */ }
 
   app.refreshAutostart();
+
+  // The version was written into the template by hand and had drifted three
+  // releases out of date. Read it from the binary instead, where it cannot.
+  try {
+    app.version = await invoke('app_version');
+    app.draw();
+  } catch (e) { /* the line simply omits it */ }
   app.loadApps();
 
   // Rust chose the source before the window existed. Ask what it settled on
