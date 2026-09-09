@@ -162,7 +162,7 @@ class Roomtone {
 
     this.state = {
       screen: 'onboard', preset: 'edge-glow',
-      ix: 0, spotify: false, device: null, target: null,
+      ix: 0, spotify: false, target: null,
       // What is actually being captured. Mirrors the Rust side, which is the
       // authority: a failed per-app capture falls back and this follows it.
       source: { kind: 'device', name: null },
@@ -513,19 +513,19 @@ class Roomtone {
 
     const src = s.source || { kind: 'device' };
     const devices = (this.deviceNames.length ? this.deviceNames : ['Default output']).map((name, i) => ({
-      v: 'dev' + i,
+      v: 'dev:' + name.toLowerCase(),
       label: name.length > 22 ? name.slice(0, 21) + '…' : name,
-      sub: src.kind === 'device' && src.name === name && this.info.running
+      sub: this.info.running && this.sourceKey() === 'dev:' + name.toLowerCase()
         ? `LOOPBACK · ${(this.info.sample_rate / 1000).toFixed(1)} KHZ`
         : 'WASAPI LOOPBACK',
-      on: () => this.pickSource({ kind: 'device', name }, 'dev' + i),
+      on: () => this.pickSource({ kind: 'device', name }),
     }));
 
     const appSources = this.apps.map((a) => ({
       v: 'app:' + a.exe.toLowerCase(),
       label: a.name.length > 22 ? a.name.slice(0, 21) + '…' : a.name,
       sub: a.active ? 'PLAYING NOW' : 'IDLE',
-      on: () => this.pickSource({ kind: 'app', exe: a.exe, name: a.name }, 'app:' + a.exe.toLowerCase()),
+      on: () => this.pickSource({ kind: 'app', exe: a.exe, name: a.name }),
     }));
 
     const targets = this.displays.map((d, i) => ({
@@ -623,7 +623,9 @@ class Roomtone {
       closeCredits: () => this.closeOverlay('credits'),
       connect: () => this.connectSpotify(),
       launch: () => {
-        if (this.state.spotify && this.state.device && this.state.target) {
+        // Audio always has a source — the whole output is the default — so the
+        // only thing still worth waiting for is a display.
+        if (this.state.spotify && this.state.target) {
           this.configured = true;
           this.setState({ screen: 'player' });
           this.saveNow();
@@ -835,9 +837,10 @@ class Roomtone {
       }
     });
 
+    const activeSource = this.sourceKey();
     this.each('chip', (e) => {
       const v = e.getAttribute('data-v'), grp = e.getAttribute('data-g') || 'device';
-      const on = s[grp] === v;
+      const on = grp === 'src' ? v === activeSource : s[grp] === v;
       e.style.borderColor = on ? acc : 'rgba(255,255,255,0.12)';
       e.style.background = on ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.02)';
       e.style.color = on ? '#fff' : 'rgba(255,255,255,0.62)';
@@ -894,7 +897,7 @@ class Roomtone {
       });
     }
 
-    const ready = s.spotify && s.device && s.target;
+    const ready = s.spotify && s.target;
     this.each('launch', (e) => {
       e.style.background = ready ? '#fff' : 'rgba(255,255,255,0.04)';
       e.style.color = ready ? '#0a0510' : 'rgba(255,255,255,0.35)';
@@ -1655,6 +1658,24 @@ class Roomtone {
 
   /* -- what we are listening to ------------------------------------------- */
 
+  /**
+   * A stable identity for a capture source, used to decide which card is lit.
+   *
+   * There used to be a second piece of state holding the id of the clicked card,
+   * purely for highlighting — and the two drifted apart, which is exactly what a
+   * duplicate source of truth always does. The card that lights up is now
+   * derived from the source that is actually running, so it cannot disagree
+   * with reality.
+   */
+  sourceKey(src) {
+    src = src || this.state.source || {};
+    if (src.kind === 'app') return 'app:' + String(src.exe || '').toLowerCase();
+    // A device source with no name means "whatever Windows calls default". The
+    // capture layer reports which one that actually resolved to, so the right
+    // card lights up rather than none of them.
+    return 'dev:' + String(src.name || (this.info && this.info.device) || '').toLowerCase();
+  }
+
   /** Applications with an audio session, newest state each time it is asked. */
   async loadApps() {
     try {
@@ -1673,8 +1694,7 @@ class Roomtone {
    * loopback, falls back to the whole device. So the answer is applied here
    * rather than the request — the interface shows what is true.
    */
-  async pickSource(source, chipId) {
-    this.setState({ device: chipId });
+  async pickSource(source) {
     try {
       const actual = await invoke('set_audio_source', { source });
       this.setState({ source: actual });
@@ -1707,7 +1727,6 @@ class Roomtone {
     const s = this.state;
     return {
       v: 1,
-      device: s.device,
       target: s.target,
       source: s.source,
       preset: s.preset,
@@ -1746,12 +1765,6 @@ class Roomtone {
       next.cfg = { ...DEFAULTS, ...saved.cfg };
     }
 
-    // The device is remembered by name; if it is not in this machine's list
-    // right now, it was unplugged or renamed.
-    if (saved.device) {
-      const i = Number(String(saved.device).replace('dev', ''));
-      if (Number.isInteger(i) && i >= 0 && i < this.deviceNames.length) next.device = saved.device;
-    }
     if (saved.target) {
       const i = Number(String(saved.target).replace('disp', ''));
       if (Number.isInteger(i) && i >= 0 && i < this.displays.length) next.target = saved.target;
@@ -1774,7 +1787,7 @@ class Roomtone {
     // Straight to the player, but only if everything it needs actually came
     // back. A half-restored setup lands on the setup screen, which is the one
     // place that can explain what is missing.
-    if (saved.configured && this.state.spotify && next.device && next.target) {
+    if (saved.configured && this.state.spotify && next.target) {
       next.screen = 'player';
     }
 

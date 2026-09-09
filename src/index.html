@@ -99,7 +99,7 @@
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
               <div data-for="devices" data-as="d" style="display:contents">
-                <button type="button" data-r="chip" data-g="device" data-v="{{ d.v }}" data-on-click="d.on" style="display:flex;flex-direction:column;gap:6px;align-items:flex-start;padding:14px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.02);border-radius:10px;color:#b0abb8;font-family:inherit;cursor:pointer;text-align:left">
+                <button type="button" data-r="chip" data-g="src" data-v="{{ d.v }}" data-on-click="d.on" style="display:flex;flex-direction:column;gap:6px;align-items:flex-start;padding:14px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.02);border-radius:10px;color:#b0abb8;font-family:inherit;cursor:pointer;text-align:left">
                   <div style="font-size:13px;font-weight:500">{{ d.label }}</div>
                   <div style="font-family:'Space Mono',monospace;font-size:10px;letter-spacing:0.08em;opacity:0.6">{{ d.sub }}</div>
                 </button>
@@ -114,7 +114,7 @@
 
             <div data-if="hasApps" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
               <div data-for="appSources" data-as="a" style="display:contents">
-                <button type="button" data-r="chip" data-g="source" data-v="{{ a.v }}" data-on-click="a.on" style="display:flex;flex-direction:column;gap:6px;align-items:flex-start;padding:14px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.02);border-radius:10px;color:#b0abb8;font-family:inherit;cursor:pointer;text-align:left">
+                <button type="button" data-r="chip" data-g="src" data-v="{{ a.v }}" data-on-click="a.on" style="display:flex;flex-direction:column;gap:6px;align-items:flex-start;padding:14px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.02);border-radius:10px;color:#b0abb8;font-family:inherit;cursor:pointer;text-align:left">
                   <div style="font-size:13px;font-weight:500">{{ a.label }}</div>
                   <div style="font-family:'Space Mono',monospace;font-size:10px;letter-spacing:0.08em;opacity:0.6">{{ a.sub }}</div>
                 </button>
@@ -375,13 +375,13 @@
           <div data-r="srcNow" style="font-family:'Space Mono',monospace;font-size:9.5px;letter-spacing:0.1em;color:rgba(255,255,255,0.72);padding:9px 11px;border-radius:8px;background:rgba(255,255,255,0.04)">—</div>
           <div style="display:flex;flex-direction:column;gap:6px">
             <div data-for="devices" data-as="d" style="display:contents">
-              <button type="button" data-r="chip" data-g="device" data-v="{{ d.v }}" data-on-click="d.on" style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:10px 11px;border-radius:8px;border:1px solid rgba(255,255,255,0.10);background:rgba(255,255,255,0.02);color:rgba(255,255,255,0.62);font-family:inherit;font-size:12px;cursor:pointer;text-align:left">
+              <button type="button" data-r="chip" data-g="src" data-v="{{ d.v }}" data-on-click="d.on" style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:10px 11px;border-radius:8px;border:1px solid rgba(255,255,255,0.10);background:rgba(255,255,255,0.02);color:rgba(255,255,255,0.62);font-family:inherit;font-size:12px;cursor:pointer;text-align:left">
                 <span>{{ d.label }}</span>
                 <span style="font-family:'Space Mono',monospace;font-size:8.5px;letter-spacing:0.1em;opacity:0.55">OUTPUT</span>
               </button>
             </div>
             <div data-for="appSources" data-as="a" style="display:contents">
-              <button type="button" data-r="chip" data-g="device" data-v="{{ a.v }}" data-on-click="a.on" style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:10px 11px;border-radius:8px;border:1px solid rgba(255,255,255,0.10);background:rgba(255,255,255,0.02);color:rgba(255,255,255,0.62);font-family:inherit;font-size:12px;cursor:pointer;text-align:left">
+              <button type="button" data-r="chip" data-g="src" data-v="{{ a.v }}" data-on-click="a.on" style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:10px 11px;border-radius:8px;border:1px solid rgba(255,255,255,0.10);background:rgba(255,255,255,0.02);color:rgba(255,255,255,0.62);font-family:inherit;font-size:12px;cursor:pointer;text-align:left">
                 <span>{{ a.label }}</span>
                 <span style="font-family:'Space Mono',monospace;font-size:8.5px;letter-spacing:0.1em;opacity:0.55">{{ a.sub }}</span>
               </button>
