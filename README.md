@@ -10,6 +10,15 @@ record rather than the app.
 
 **Built by me, utilizing claude.**
 
+<p align="center">
+  <img src="docs/media/visual-kaleido.jpg" width="100%" alt="Kaleidoscope preset, colours pulled from the album art">
+</p>
+
+<p align="center">
+  <img src="docs/media/visual-warp.jpg" width="49%" alt="Feedback warp preset">
+  <img src="docs/media/visual-smoke.jpg" width="49%" alt="Smoke preset">
+</p>
+
 ---
 
 ## ⚠️ Photosensitivity warning
@@ -74,7 +83,6 @@ software if anything about it feels uncomfortable.
   Windows 11 and on up-to-date Windows 10).
 
 ## Setting up Spotify
-**YOU NEED SPOTIFY PREMIUM**
 
 ROOMTONE does not ship with a Client ID, and this is deliberate rather than an
 omission. Spotify applications start in *development mode*, which allows at most
