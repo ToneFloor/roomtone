@@ -1,0 +1,43 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "ROOMTONE",
+  "version": "0.1.0",
+  "identifier": "app.roomtone.desktop",
+  "build": {
+    "frontendDist": "../src"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "ROOMTONE",
+        "width": 1440,
+        "height": 900,
+        "minWidth": 1100,
+        "minHeight": 700,
+        "resizable": true,
+        "center": true,
+        "decorations": true,
+        "backgroundColor": "#08040f"
+      }
+    ],
+    "security": {
+      "csp": null
+    },
+    "withGlobalTauri": true
+  },
+  "bundle": {
+    "active": true,
+    "targets": [
+      "msi"
+    ],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.ico"
+    ],
+    "publisher": "Robin",
+    "shortDescription": "Audio-reactive room lighting",
+    "longDescription": "ROOMTONE visualises whatever music is playing on your PC: it captures system audio, pulls track metadata and synced lyrics, and renders fullscreen GPU visuals that react to the music."
+  }
+}

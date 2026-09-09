@@ -1,0 +1,36 @@
+name: Lyric problem
+description: Lyrics are missing, wrong, or out of time
+labels: [lyrics]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Lyrics come from [LRCLIB](https://lrclib.net), a community database.
+        ROOMTONE does not write them.
+
+        **Before reporting timing:** `[` and `]` nudge by 50 ms and the offset is
+        remembered per track, and `\` attempts an automatic alignment to the
+        vocal. If a fixed nudge corrects it, the LRC file itself is offset — that
+        is worth fixing at LRCLIB, where it helps everyone.
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What is wrong
+      options:
+        - No lyrics found for a track that has them
+        - Lyrics are for the wrong song
+        - Timing drifts during the song
+        - Timing is offset by a constant amount
+    validations:
+      required: true
+  - type: input
+    id: track
+    attributes:
+      label: Track and artist
+    validations:
+      required: true
+  - type: input
+    id: lrclib
+    attributes:
+      label: Does lrclib.net have it?
+      description: Search there and paste the link, if you find it.

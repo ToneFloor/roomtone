@@ -1,0 +1,27 @@
+# Rust
+target/
+**/target/
+
+# Node
+node_modules/
+dist/
+
+# Local secrets and machine-specific config — never commit
+.env
+.env.local
+*.local
+
+# Runtime data
+*.log
+*.sqlite
+*.sqlite-journal
+cache/
+
+# OS
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Editors
+.vscode/
+.idea/

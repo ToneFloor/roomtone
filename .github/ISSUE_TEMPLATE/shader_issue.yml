@@ -1,0 +1,44 @@
+name: Shader problem
+description: A preset renders wrongly, fails to compile, or performs badly
+labels: [shader]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        If it is a shader you wrote, please paste the whole `.frag`. Two things
+        account for most reports: forgetting to multiply the final colour by
+        `uWeight` (looks right alone, blows out to white during a preset change),
+        and `pow()` with a base that can go negative, which is undefined in GLSL
+        and can black out part of the screen. See
+        [docs/SHADERS.md](../../docs/SHADERS.md).
+  - type: dropdown
+    id: which
+    attributes:
+      label: Whose shader
+      options:
+        - One of the built-in presets
+        - One I wrote
+    validations:
+      required: true
+  - type: input
+    id: name
+    attributes:
+      label: Preset name
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What it does, and what it should do
+    validations:
+      required: true
+  - type: textarea
+    id: source
+    attributes:
+      label: Shader source
+      description: If it is your own.
+      render: glsl
+  - type: input
+    id: gpu
+    attributes:
+      label: Graphics card

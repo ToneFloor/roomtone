@@ -1,0 +1,80 @@
+[package]
+name = "roomtone"
+version = "0.1.0"
+description = "Audio-reactive room lighting for Windows"
+authors = ["Robin"]
+edition = "2021"
+rust-version = "1.88"
+license = "GPL-3.0-only"
+
+[lib]
+name = "roomtone_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon", "image-png"] }
+# Two copies of ROOMTONE running at once would both try to refresh the Spotify
+# token, and PKCE rotation means the second refresh invalidates the first.
+tauri-plugin-single-instance = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+url = "2"
+
+# Spotify Web API + PKCE. rustls rather than native TLS so the build has no
+# OpenSSL dependency.
+rspotify = { version = "0.16", default-features = false, features = [
+  "client-reqwest",
+  "reqwest-rustls-tls",
+] }
+
+# Audio: WASAPI loopback capture, FFT, and the lock-free hand-off between the
+# audio callback and the analysis thread.
+cpal = "0.18"
+# Onset, beat and tempo detection. GPL-3, and the reason ROOMTONE is GPL-3.
+aubio-rs = { version = "0.2", features = ["builtin"] }
+rustfft = "6"
+ringbuf = "0.5"
+
+# Lyrics cache. Bundled so the build has no external SQLite dependency.
+rusqlite = { version = "0.40", features = ["bundled"] }
+
+# Accent colour extraction from cover art.
+image = { version = "0.25", default-features = false, features = ["jpeg"] }
+color-thief = "0.2"
+
+# HTTP for cover-art downloads. rustls to match rspotify — no OpenSSL.
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
+tokio = { version = "1", features = ["sync", "time"] }
+
+# Refresh token storage in the Windows Credential Manager.
+keyring = { version = "3", default-features = false, features = ["windows-native"] }
+
+[target.'cfg(windows)'.dependencies]
+# Win32: borderless fullscreen sized exactly to the monitor.
+# The `implement` macro expands to `::windows_core::…` paths, so the core crate
+# has to be a direct dependency even though everything else comes via `windows`.
+windows-core = "0.61"
+windows = { version = "0.61", features = [
+  "Win32_Foundation",
+  "Win32_Graphics_Gdi",
+  "Win32_Media_Audio",
+  "Win32_Media_KernelStreaming",
+  "Win32_Security",
+  "Win32_System_Com",
+  "Win32_System_Com_StructuredStorage",
+  "Win32_System_Diagnostics_ToolHelp",
+  "Win32_System_Registry",
+  "Win32_System_Threading",
+  "Win32_UI_WindowsAndMessaging",
+] }
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+panic = "abort"
+strip = true

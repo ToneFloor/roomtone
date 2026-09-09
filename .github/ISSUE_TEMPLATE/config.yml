@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Writing your own shader
+    url: https://github.com/ToneFloor/roomtone/blob/main/docs/SHADERS.md
+    about: The preset format, the uniforms available, and the traps worth knowing.
+  - name: Missing or wrong lyrics at the source
+    url: https://lrclib.net
+    about: Lyrics come from LRCLIB. Corrections made there help every app that uses it.

@@ -1,0 +1,22 @@
+name: Idea
+description: Suggest a feature or a preset
+labels: [idea]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        [docs/ROADMAP.md](../../docs/ROADMAP.md) lists what is already planned,
+        and [CONTRIBUTING.md](../../CONTRIBUTING.md) lists the few things that
+        will be turned down — telemetry of any kind, a bundled Spotify Client ID,
+        and anything that weakens the flash guard.
+  - type: textarea
+    id: idea
+    attributes:
+      label: The idea
+      description: What you want to be able to do, and why the current app makes it hard.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Anything you tried instead

@@ -1,0 +1,1 @@
+{"default":{"identifier":"default","description":"What the ROOMTONE window is allowed to do. Tauri 2 denies core APIs unless they are granted here — without core:event the window cannot subscribe to the audio and track events the Rust core emits.","local":true,"windows":["main"],"permissions":["core:default"]}}

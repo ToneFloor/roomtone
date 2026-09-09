@@ -1,0 +1,42 @@
+name: Bug report
+description: Something in the app does not work
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        `%APPDATA%\roomtone\auth.log` is written to be safe to paste — no tokens,
+        no account IDs, no file paths. Including the last twenty or so lines makes
+        this far easier to act on.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what you got instead.
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: Log
+      description: The tail of `%APPDATA%\roomtone\auth.log`, if you have it.
+      render: text
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      description: "`winver` gives you this — for example: Windows 11 23H2, build 22631"
+    validations:
+      required: true
+  - type: dropdown
+    id: source
+    attributes:
+      label: What was it listening to?
+      options:
+        - A whole output device
+        - A single app
+        - Not sure
+  - type: input
+    id: preset
+    attributes:
+      label: Which preset was active
