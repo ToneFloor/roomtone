@@ -84,6 +84,21 @@ pub fn load() -> AppConfig {
     cfg
 }
 
+/// Whether the interface asked for vsync to be turned off.
+///
+/// Read straight off the front end's own settings blob rather than given a
+/// field of its own, because the value is needed *before* the web view exists:
+/// WebView2 reads its extra command-line switches once, when its environment is
+/// created at process start. That is also why changing it needs a restart.
+pub fn unlock_vsync() -> bool {
+    load_file_only()
+        .ui
+        .as_ref()
+        .and_then(|ui| ui.get("unlockVsync"))
+        .and_then(serde_json::Value::as_bool)
+        .unwrap_or(false)
+}
+
 /// Same as `load`, but never inherits the Client ID from the environment.
 ///
 /// `load` falls back to `.env` for developer convenience, and `save` writes

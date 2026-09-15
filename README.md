@@ -67,6 +67,9 @@ software if anything about it feels uncomfortable.
 - **Knows the words.** Timed lyrics from LRCLIB, with a syllable-weighted word
   model, per-track timing memory, and a karaoke mode where the line fills in word
   by word with a count-in before you come in.
+- **Runs as fast as you let it.** The render loop follows the display by
+  default. A frame-rate slider caps it lower, and a switch turns vsync off
+  entirely for uncapped frames — measured at 554 FPS on a 60 Hz panel.
 - **Takes shaders you write.** Drop a `.frag` file in a folder and it appears in
   the dock, with sliders generated from a comment at the top of the file. See
   [docs/SHADERS.md](docs/SHADERS.md).

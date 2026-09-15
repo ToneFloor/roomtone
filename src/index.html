@@ -343,7 +343,7 @@
                 <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%">
                   <div style="font-size:12.5px;color:rgba(255,255,255,0.86)">{{ t.label }}</div>
                   <div style="display:flex;align-items:center;gap:8px">
-                    <div style="font-family:'Space Mono',monospace;font-size:8.5px;letter-spacing:0.1em;color:rgba(255,255,255,0.3);border:1px solid rgba(255,255,255,0.14);border-radius:4px;padding:2px 5px">{{ t.key }}</div>
+                    <div data-if="t.key" style="font-family:'Space Mono',monospace;font-size:8.5px;letter-spacing:0.1em;color:rgba(255,255,255,0.3);border:1px solid rgba(255,255,255,0.14);border-radius:4px;padding:2px 5px">{{ t.key }}</div>
                     <div data-r="swTrack" data-v="{{ t.k }}" style="position:relative;width:34px;height:18px;flex:none;border-radius:999px;background:rgba(255,255,255,0.12);transition:background 0.18s ease">
                       <div data-r="swKnob" data-v="{{ t.k }}" style="position:absolute;top:3px;left:3px;width:12px;height:12px;border-radius:50%;background:#fff;transition:transform 0.18s cubic-bezier(0.2,0.9,0.2,1)"></div>
                     </div>

@@ -473,6 +473,20 @@ fn remember_geometry(window: &tauri::Window) {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Frame-rate unlock, if the interface asked for it last time.
+    //
+    // `requestAnimationFrame` is paced by the compositor, which waits for
+    // vsync — so the render loop can never exceed the monitor's refresh rate
+    // no matter what the front end does. These two switches turn that pacing
+    // off. They have to be in the environment before the web view is created,
+    // which is why this is the first thing `run` does.
+    if config::unlock_vsync() {
+        std::env::set_var(
+            "WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS",
+            "--disable-frame-rate-limit --disable-gpu-vsync",
+        );
+    }
+
     tauri::Builder::default()
         // One instance only. Beyond the usual tidiness, two instances would
         // both refresh the Spotify token on launch, and because PKCE rotates

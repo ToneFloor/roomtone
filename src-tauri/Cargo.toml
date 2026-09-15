@@ -1,6 +1,6 @@
 [package]
 name = "roomtone"
-version = "0.1.1"
+version = "0.2.0"
 description = "Audio-reactive room lighting for Windows"
 authors = ["Robin"]
 edition = "2021"
@@ -73,6 +73,16 @@ windows = { version = "0.61", features = [
 ] }
 
 [profile.release]
+# Note on keeping the build machine out of the binary:
+#
+# rustc records the path of every source file it compiles, for panic messages
+# and backtraces. For dependencies those paths point into the build machine's
+# Cargo registry, which lives under its home directory — so a naive release
+# build ships the builder's account name a few hundred times over. Cargo's
+# `trim-paths` profile option fixes this but is still unstable, so releases are
+# built through `scripts/release.ps1`, which passes the equivalent
+# `--remap-path-prefix` flags worked out from the current environment. Build
+# releases with that script, not with `npm run tauri build` directly.
 codegen-units = 1
 lto = true
 opt-level = "s"

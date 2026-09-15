@@ -49,8 +49,24 @@ const REPORT_LAG = 0.13;
 
 /** How each live-adjustable value reads on screen. */
 const pct = (v) => Math.round(v * 100) + '%';
+/**
+ * Frame-rate limit positions.
+ *
+ * 0 means "whatever the display does" — a plain `requestAnimationFrame` loop,
+ * which the browser paces to the monitor's refresh rate. The rest cap the loop
+ * in software, which can only ever slow it down: asking for 240 on a 60 Hz
+ * screen does nothing until vsync is off, which is what the unlock switch is
+ * for. `Infinity` skips the limiter entirely.
+ */
+const FPS_STEPS = [0, 30, 45, 60, 90, 120, 144, 165, 240, Infinity];
+const FPS_LABELS = [
+  'DISPLAY', '30 FPS', '45 FPS', '60 FPS', '90 FPS',
+  '120 FPS', '144 FPS', '165 FPS', '240 FPS', 'UNLIMITED',
+];
+
 const FORMATTERS = {
   safeFlash: (v) => ['OFF', 'GENTLE', 'STRONG'][Math.round(v)] || 'OFF',
+  fpsCap: (v) => FPS_LABELS[Math.round(v)] || 'DISPLAY',
   intensity: pct, bassGain: pct, reach: pct, bloom: pct,
   extrude: pct, rgb: pct, cuts: pct,
   echo: (v) => String(Math.round(v)),
@@ -63,6 +79,8 @@ const DEFAULTS = {
   // 0 off · 1 gentle · 2 strong. Off by default because the visualizer is
   // meant to react — but the setting exists, and the README says so.
   safeFlash: 0,
+  // Index into FPS_STEPS. 0 = follow the display.
+  fpsCap: 0,
 };
 
 /**
@@ -196,6 +214,8 @@ class Roomtone {
     this.presets = [];          // parsed .frag presets, dock order
     this.params = {};           // presetId -> { key: value }
     this.shaderError = null;
+    this.unlockVsync = false;  // vsync off at startup, for uncapped frames
+    this.nextFrameAt = 0;       // frame-limiter deadline
     this.useShaders = true;
     this.stamps = '';
 
@@ -738,6 +758,7 @@ class Roomtone {
         R('intensity', 'Intensity', 0.2, 1.6, 0.05, 'Overall reaction depth. Drop to ~0.4 for something calmer.'),
         R('bassGain', 'Bass weight', 0.3, 2, 0.05, 'How much low end drives the motion versus mids and highs.'),
         R('safeFlash', 'Flash guard', 0, 2, 1, 'Off · Gentle · Strong. Limits how fast and how far the whole screen can change brightness. Reduces, but cannot eliminate, flashing — see the photosensitivity note in the README.'),
+        R('fpsCap', 'Frame rate', 0, 9, 1, 'Caps the render loop. Anything above your monitor\u2019s refresh rate needs the frame-rate unlock switch as well, and a restart \u2014 without it the browser paces every frame to the display.'),
       ],
     }];
     // The active preset's sliders come from its own file header. Nothing is
@@ -985,6 +1006,24 @@ class Roomtone {
     requestAnimationFrame(this.frame);
 
     const now = performance.now();
+
+    // Software frame limiter.
+    //
+    // Two things this has to get right. First, frames are only offered on a
+    // schedule the browser picks — vsync, unless it has been turned off — so a
+    // frame that arrives a fraction of a millisecond early has to be allowed,
+    // or a 60 cap on a 60 Hz panel rejects every single frame and collapses to
+    // 30. Second, that slack must not feed back into the rate: measuring the
+    // gap from the frame that was actually drawn lets it compound, which is how
+    // an earlier version of this ran a 144 cap at 181. So the deadline advances
+    // on a fixed grid instead, and being a little early just shifts the phase.
+    const cap = FPS_STEPS[Math.round(this.state.cfg.fpsCap) || 0] || 0;
+    if (cap && cap !== Infinity) {
+      if (now < this.nextFrameAt - 1) return;
+      this.nextFrameAt = Math.max(now, (this.nextFrameAt || now) + 1000 / cap);
+    } else {
+      this.nextFrameAt = 0;
+    }
 
     const t0 = now;
     this.body();
@@ -1577,6 +1616,20 @@ class Roomtone {
         go: () => { this.lyricArt = !this.lyricArt; this.saveSoon(); this.sync(); },
       },
       {
+        k: 'unlockVsync',
+        label: 'Frame-rate unlock',
+        hint: 'Lets the render loop run past your monitor\u2019s refresh rate by turning off vsync. Costs a lot of GPU for frames you cannot see, and can tear. Applies on the next start.',
+        on: this.unlockVsync,
+        go: () => {
+          this.unlockVsync = !this.unlockVsync;
+          this.saveNow();
+          this.say(this.unlockVsync
+            ? 'Frame-rate unlock on \u2014 restart ROOMTONE to apply'
+            : 'Frame-rate unlock off \u2014 restart ROOMTONE to apply');
+          this.draw();
+        },
+      },
+      {
         k: 'debug',
         label: 'Diagnostics overlay',
         key: 'D',
@@ -1734,6 +1787,8 @@ class Roomtone {
       params: JSON.parse(JSON.stringify(this.params || {})),
       useShaders: this.useShaders,
       lyricArt: this.lyricArt,
+      // Read by Rust at startup, before the web view exists.
+      unlockVsync: !!this.unlockVsync,
       // Latched, not read from the current screen.
       //
       // Reading `screen === 'player'` looked right and was wrong: the setup
@@ -1781,6 +1836,7 @@ class Roomtone {
 
     if (typeof saved.useShaders === 'boolean') this.useShaders = saved.useShaders;
     if (typeof saved.lyricArt === 'boolean') this.lyricArt = saved.lyricArt;
+    if (typeof saved.unlockVsync === 'boolean') this.unlockVsync = saved.unlockVsync;
     if (saved.params && typeof saved.params === 'object') this.params = saved.params;
     if (saved.tourDone) next.tour = -1;
 

@@ -26,6 +26,5 @@ desktop.ini
 .vscode/
 .idea/
 
-# Release artefacts, produced by 
-pm run tauri build
+# Release artefacts, produced by `npm run tauri build`
 /release/
