@@ -11,6 +11,12 @@ record rather than the app.
 **Built by me, utilizing claude.**
 
 <p align="center">
+  <a href="https://github.com/ToneFloor/roomtone/releases/latest"><b>&#11015;&nbsp; Download for Windows</b></a>
+</p>
+
+<p align="center"><sub>Installer, ~3&nbsp;MB. No account needed to start.</sub></p>
+
+<p align="center">
   <img src="docs/media/visual-kaleido.jpg" width="100%" alt="Kaleidoscope preset, colours pulled from the album art">
 </p>
 
@@ -53,6 +59,19 @@ software if anything about it feels uncomfortable.
 
 ---
 
+## Quick start
+
+1. [Download the installer](https://github.com/ToneFloor/roomtone/releases/latest) and run it.
+2. Open ROOMTONE. Pick where the sound is coming from, pick a screen, press
+   **START VISUALIZER**.
+
+That is the whole thing. No account, no sign-in, nothing to register — it
+listens to your speakers and draws.
+
+Track names, album colours and word-by-word lyrics need Spotify, which is step
+03 on that screen and can be added later from Settings. It takes about two
+minutes and works on a free account — see [Setting up Spotify](#setting-up-spotify).
+
 ## What it does
 
 - **Listens to real audio.** WASAPI loopback capture, a 2048-point FFT on a
@@ -78,9 +97,12 @@ software if anything about it feels uncomfortable.
 
 - **Windows 10 or 11.** Per-app capture additionally needs build 20348 or newer;
   on anything older that one feature falls back to capturing the whole output.
-- **A Spotify account.** Track metadata needs any account. Playback control
-  (play, pause, skip from inside ROOMTONE) is a Premium-only API.
-- **Your own Spotify Client ID** — see below. Two minutes, no cost.
+- **A Spotify account — only for the optional half.** The visualizer itself
+  needs no account at all. Track metadata and timed lyrics work on a free
+  account; playback control (play, pause, skip from inside ROOMTONE) is a
+  Premium-only API.
+- **Your own Spotify Client ID**, for that optional half — see below. Two
+  minutes, no cost. ROOMTONE asks for it on screen and links you to the page.
 - To build it: [Rust](https://rustup.rs) 1.88 or newer,
   [Node.js](https://nodejs.org), and the WebView2 runtime (already present on
   Windows 11 and on up-to-date Windows 10).

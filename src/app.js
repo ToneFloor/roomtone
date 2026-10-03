@@ -262,7 +262,12 @@ class Roomtone {
     const second = (np && np.accent2) || shade(accent, 0.28);
     return {
       title: (np && np.name) || 'Nothing playing',
-      artist: (np && np.artists) || (np && np.connected ? 'Press play in Spotify' : 'Spotify not connected'),
+      // "Spotify not connected" is a fault report, and for someone who never
+      // asked for Spotify it is a fault they did not cause. Only say it to
+      // people who have actually set it up.
+      artist: (np && np.artists)
+        || (np && np.connected ? 'Press play in Spotify'
+            : (this.clientIdSet ? 'Spotify not connected' : 'Listening to your speakers')),
       dur: np && np.duration_ms ? np.duration_ms / 1000 : 1,
       a: accent,
       a2: second,
@@ -579,6 +584,8 @@ class Roomtone {
           .catch(() => this.say('COULD NOT COPY \u2014 TYPE IT BY HAND'));
       },
       saveClientId: () => this.saveClientId(),
+      skipSpotify: () => { this.authError = ''; this.setState({ screen: 'player' }); this.configured = true; this.saveNow(); },
+      canSkip: !s.spotify && !!s.target,
       authError: this.authError || '',
       hasAuthError: !!this.authError,
       playing, paused: !playing,
@@ -648,6 +655,11 @@ class Roomtone {
         { v: 'fixed', label: 'FIXED', on: () => this.setCfg('colorSrc', 'fixed') },
       ],
       openSettings: () => this.setState({ settings: true }),
+      backToSetup: () => this.setState({ settings: false, screen: 'setup' }),
+      spotifyLabel: s.spotify ? 'Spotify connected' : 'Spotify not connected',
+      spotifyHint: s.spotify
+        ? 'Track, artist, album colours and timed lyrics are coming from Spotify.'
+        : 'Without it the visuals still run on what your speakers are playing \u2014 you just do not get the track name, the album colours or the lyrics.',
       closeSettings: () => this.setState({ settings: false }),
       resetCfg: () => this.setState({ cfg: { ...DEFAULTS } }),
       showCredits: s.credits || !!this.closing.credits,
@@ -664,7 +676,7 @@ class Roomtone {
       launch: () => {
         // Audio always has a source — the whole output is the default — so the
         // only thing still worth waiting for is a display.
-        if (this.state.spotify && this.state.target) {
+        if (this.state.target) {
           this.configured = true;
           this.setState({ screen: 'player' });
           this.saveNow();
@@ -688,18 +700,36 @@ class Roomtone {
    * button that looked like it had worked when it had not.
    */
   async saveClientId() {
-    const id = (this.cidDraft || '').trim();
-    if (!id) { this.authError = 'Paste the Client ID from your Spotify app first.'; this.draw(); return; }
+    // Take the Client ID out of whatever got pasted.
+    //
+    // People do not paste a bare ID. They paste the dashboard URL that has it
+    // in the middle, or the line "Client ID: abc123..." they copied with the
+    // label, or the same thing with a stray newline. All of those contain
+    // exactly one 32-character hex string and nothing else does, so find it
+    // rather than making someone trim text by hand.
+    const raw = (this.cidDraft || '').trim();
+    const found = raw.match(/[0-9a-fA-F]{32}/);
+    if (!raw) { this.authError = 'Paste the Client ID from your Spotify app first.'; this.draw(); return; }
+    if (!found) {
+      this.authError = 'That does not contain a Client ID. It is 32 letters and numbers, on your app\u2019s page in the Spotify dashboard.';
+      this.draw();
+      return;
+    }
     try {
-      await invoke('set_client_id', { clientId: id });
+      await invoke('set_client_id', { clientId: found[0].toLowerCase() });
       this.clientIdSet = true;
       this.cidDraft = '';
       this.authError = '';
-      this.say('CLIENT ID SAVED \u2014 NOW CONNECT');
     } catch (e) {
       this.authError = String(e);
+      this.draw();
+      return;
     }
-    this.draw();
+    // Straight into the browser. Saving the ID is never the thing someone
+    // wanted to do; connecting is, and a second button in between is a second
+    // chance to stop halfway.
+    this.say('CLIENT ID SAVED \u2014 OPENING SPOTIFY');
+    await this.connectSpotify();
   }
 
   /**
@@ -983,7 +1013,11 @@ class Roomtone {
       });
     }
 
-    const ready = s.spotify && s.target;
+    // Spotify is not in this condition on purpose. The visualizer is an audio
+    // program: capture and shaders need no account at all. Requiring a login
+    // before the first frame turned "download it and see" into a developer
+    // dashboard errand, which is exactly where people gave up.
+    const ready = !!s.target;
     this.each('launch', (e) => {
       e.style.background = ready ? '#fff' : 'rgba(255,255,255,0.04)';
       e.style.color = ready ? '#0a0510' : 'rgba(255,255,255,0.35)';
@@ -1908,7 +1942,7 @@ class Roomtone {
     // Straight to the player, but only if everything it needs actually came
     // back. A half-restored setup lands on the setup screen, which is the one
     // place that can explain what is missing.
-    if (saved.configured && this.state.spotify && next.target) {
+    if (saved.configured && next.target) {
       next.screen = 'player';
     }
 
@@ -2401,6 +2435,14 @@ async function refreshInfo() {
 
   app.deviceNames = devices;
   app.displays = displays;
+  // Preselect the primary screen. Every machine has one, it is the answer
+  // almost everybody wants, and leaving it blank meant the START button sat
+  // greyed out with nothing on screen saying which of the three steps was the
+  // one still holding it shut.
+  if (!app.state.target && displays.length) {
+    const primary = displays.findIndex((d) => d.primary);
+    app.state.target = 'disp' + (primary >= 0 ? primary : 0);
+  }
   app.state.spotify = !!status.connected;
   // Decides whether the first thing on screen is 'paste your Client ID' or
   // 'connect'. Assume present if the call fails, so a transient error cannot
@@ -2425,6 +2467,7 @@ async function refreshInfo() {
   // releases out of date. Read it from the binary instead, where it cannot.
   try {
     app.version = await invoke('app_version');
+    invoke('ui_log', { message: 'DIAG target=' + app.state.target + ' primaries=' + JSON.stringify(app.displays.map((d) => d.primary)) + ' screen=' + app.state.screen }).catch(() => {});
     app.draw();
   } catch (e) { /* the line simply omits it */ }
   app.loadApps();
