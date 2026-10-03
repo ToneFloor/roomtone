@@ -215,6 +215,9 @@ class Roomtone {
     this.params = {};           // presetId -> { key: value }
     this.shaderError = null;
     this.unlockVsync = false;  // vsync off at startup, for uncapped frames
+    this.clientIdSet = true;    // until boot says otherwise
+    this.cidDraft = '';         // the Client ID being typed
+    this.authError = '';        // last Spotify failure, shown on setup
     this.nextFrameAt = 0;       // frame-limiter deadline
     this.useShaders = true;
     this.stamps = '';
@@ -561,7 +564,23 @@ class Roomtone {
       isOnboard: s.screen === 'onboard',
       isClub: s.screen === 'player',
       specBars: Array.from({ length: 56 }, (_, i) => i),
-      spotifyOn: s.spotify, spotifyOff: !s.spotify,
+      spotifyOn: s.spotify, spotifyOff: !s.spotify && !!this.clientIdSet,
+      // The Client ID step. ROOMTONE ships without one on purpose, so on every
+      // machine but the developer's this is the actual first thing to do — and
+      // until this screen existed, the connect button simply did nothing.
+      needClientId: !s.spotify && !this.clientIdSet,
+      cidDraft: this.cidDraft || '',
+      cidInput: (e) => { this.cidDraft = e.target.value; },
+      redirectUri: 'http://127.0.0.1:8888/callback',
+      openDashboard: () => invoke('open_external', { url: 'https://developer.spotify.com/dashboard' }).catch(() => {}),
+      copyRedirect: () => {
+        navigator.clipboard.writeText('http://127.0.0.1:8888/callback')
+          .then(() => this.say('REDIRECT URI COPIED'))
+          .catch(() => this.say('COULD NOT COPY \u2014 TYPE IT BY HAND'));
+      },
+      saveClientId: () => this.saveClientId(),
+      authError: this.authError || '',
+      hasAuthError: !!this.authError,
       playing, paused: !playing,
       bars: Array.from({ length: 56 }, (_, i) => i),
       slots: [0, 1, 2, 3, 4],
@@ -661,9 +680,55 @@ class Roomtone {
     };
   }
 
+  /**
+   * Save the Client ID the user pasted in.
+   *
+   * Rust validates the shape and writes it to the config file; all this has to
+   * do is report back honestly, because the failure that mattered here was a
+   * button that looked like it had worked when it had not.
+   */
+  async saveClientId() {
+    const id = (this.cidDraft || '').trim();
+    if (!id) { this.authError = 'Paste the Client ID from your Spotify app first.'; this.draw(); return; }
+    try {
+      await invoke('set_client_id', { clientId: id });
+      this.clientIdSet = true;
+      this.cidDraft = '';
+      this.authError = '';
+      this.say('CLIENT ID SAVED \u2014 NOW CONNECT');
+    } catch (e) {
+      this.authError = String(e);
+    }
+    this.draw();
+  }
+
+  /**
+   * Run the OAuth flow, and say so when it fails.
+   *
+   * This used to be two lines that threw `status.error` away. Every way the
+   * flow can fail — no Client ID, port 8888 already taken, the browser refusing
+   * to open, the three-minute redirect timeout, Spotify rejecting the app
+   * because the account was never added to it — arrived as a button that
+   * appeared to do nothing at all. The backend had good messages the whole
+   * time; nothing was showing them.
+   */
   async connectSpotify() {
-    const status = await invoke('spotify_connect');
-    this.setState({ spotify: !!status.connected });
+    this.authError = '';
+    this.connecting = true;
+    this.draw();
+    let status;
+    try {
+      status = await invoke('spotify_connect');
+    } catch (e) {
+      status = { error: String(e) };
+    }
+    this.connecting = false;
+    if (status && status.client_id_set === false) this.clientIdSet = false;
+    if (status && status.error) {
+      this.authError = String(status.error);
+      this.say('SPOTIFY: ' + String(status.error).toUpperCase().slice(0, 60));
+    }
+    this.setState({ spotify: !!(status && status.connected) });
   }
 
   /**
@@ -2337,6 +2402,10 @@ async function refreshInfo() {
   app.deviceNames = devices;
   app.displays = displays;
   app.state.spotify = !!status.connected;
+  // Decides whether the first thing on screen is 'paste your Client ID' or
+  // 'connect'. Assume present if the call fails, so a transient error cannot
+  // push someone back through setup they have already done.
+  app.clientIdSet = await invoke('client_id_present').catch(() => true);
 
   await refreshInfo();
   setInterval(refreshInfo, 1000);

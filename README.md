@@ -96,7 +96,8 @@ omission. Spotify applications start in *development mode*, which allows at most
 2. Add the redirect URI `http://127.0.0.1:8888/callback`.
 3. Tick **Web API** under the SDKs question, and save.
 4. Open the app → **Settings** → **User Management**, and add your own account.
-5. Copy the Client ID and paste it into ROOMTONE on first run.
+5. Copy the Client ID and paste it into ROOMTONE on first run — the first
+   screen asks for it, and has the redirect URI ready to copy.
 
 ## Building
 

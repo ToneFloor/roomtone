@@ -73,19 +73,46 @@
             <div style="display:flex;align-items:center;gap:14px">
               <div style="font-family:'Space Mono',monospace;font-size:11px;color:#9d98a6;letter-spacing:0.14em">01</div>
               <div style="font-size:15px;font-weight:500;letter-spacing:0.02em">Metadata source</div>
-              <div style="font-family:'Space Mono',monospace;font-size:10px;letter-spacing:0.12em;padding:3px 8px;border-radius:4px;border:1px solid rgba(45,226,150,0.4);color:#2de296">PREMIUM REQUIRED</div>
+              <div style="font-family:'Space Mono',monospace;font-size:10px;letter-spacing:0.12em;padding:3px 8px;border-radius:4px;border:1px solid rgba(45,226,150,0.4);color:#2de296">FREE OR PREMIUM</div>
+            </div>
+            <div data-if="needClientId" style="display:contents">
+              <div style="display:flex;flex-direction:column;gap:14px;padding:18px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.02);border-radius:10px">
+                <div style="font-size:12.5px;line-height:1.65;color:#b0abb8">ROOMTONE does not come with a Spotify Client ID, so that your listening is only ever tied to your own Spotify application. Making one takes about two minutes and costs nothing.</div>
+                <div style="display:flex;flex-direction:column;gap:9px;font-size:12px;line-height:1.6;color:#9d98a6">
+                  <div><span style="font-family:'Space Mono',monospace;color:var(--a,#7c5cff);font-size:10.5px;letter-spacing:0.1em">01</span> &nbsp;Open the Spotify developer dashboard and create an app. Any name will do.</div>
+                  <div><span style="font-family:'Space Mono',monospace;color:var(--a,#7c5cff);font-size:10.5px;letter-spacing:0.1em">02</span> &nbsp;Add this exact redirect URI:</div>
+                  <div style="display:flex;align-items:center;gap:10px;margin-left:26px">
+                    <code style="font-family:'Space Mono',monospace;font-size:11.5px;color:#d8d4de;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.10);border-radius:5px;padding:5px 9px">{{ redirectUri }}</code>
+                    <button type="button" data-on-click="copyRedirect" style="padding:5px 11px;border-radius:999px;border:1px solid rgba(255,255,255,0.14);background:transparent;color:rgba(255,255,255,0.55);font-family:'Space Mono',monospace;font-size:9px;letter-spacing:0.14em;cursor:pointer" style-hover="color:#fff;border-color:#fff">COPY</button>
+                  </div>
+                  <div><span style="font-family:'Space Mono',monospace;color:var(--a,#7c5cff);font-size:10.5px;letter-spacing:0.1em">03</span> &nbsp;Tick <b style="color:#c9c4d1;font-weight:500">Web API</b> under the SDKs question, and save.</div>
+                  <div><span style="font-family:'Space Mono',monospace;color:var(--a,#7c5cff);font-size:10.5px;letter-spacing:0.1em">04</span> &nbsp;Open the app &rsaquo; <b style="color:#c9c4d1;font-weight:500">Settings</b> &rsaquo; <b style="color:#c9c4d1;font-weight:500">User Management</b>, and add your own name and the email address on your Spotify account. New apps only allow the people listed there, so skipping this makes the next step fail.</div>
+                  <div><span style="font-family:'Space Mono',monospace;color:var(--a,#7c5cff);font-size:10.5px;letter-spacing:0.1em">05</span> &nbsp;Copy the Client ID from the app&rsquo;s settings page and paste it here.</div>
+                </div>
+                <button type="button" data-on-click="openDashboard" style="align-self:flex-start;padding:9px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.16);background:rgba(255,255,255,0.04);color:#fff;font-family:inherit;font-size:12px;cursor:pointer" style-hover="background:rgba(255,255,255,0.09);border-color:rgba(255,255,255,0.3)">OPEN THE DASHBOARD &rarr;</button>
+                <div style="display:flex;gap:10px;align-items:center">
+                  <input data-r="cid" type="text" spellcheck="false" autocomplete="off" placeholder="Client ID &mdash; 32 letters and numbers" value="{{ cidDraft }}" data-on-input="cidInput" style="flex:1;min-width:0;padding:12px 13px;border-radius:8px;border:1px solid rgba(255,255,255,0.14);background:rgba(0,0,0,0.25);color:#fff;font-family:'Space Mono',monospace;font-size:12px;outline:none" />
+                  <button type="button" data-on-click="saveClientId" style="padding:12px 18px;border-radius:8px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:#fff;font-family:inherit;font-size:12px;letter-spacing:0.08em;cursor:pointer;white-space:nowrap" style-hover="background:rgba(255,255,255,0.12);border-color:rgba(255,255,255,0.34)">SAVE</button>
+                </div>
+              </div>
             </div>
             <div data-if="spotifyOn" style="display:contents">
               <div style="display:flex;align-items:center;gap:12px;padding:16px 18px;border:1px solid rgba(45,226,150,0.35);background:rgba(45,226,150,0.07);border-radius:10px">
                 <div style="width:8px;height:8px;border-radius:50%;background:#2de296;box-shadow:0 0 12px #2de296"></div>
                 <div style="font-size:14px">Spotify connected</div>
-                <div style="margin-left:auto;font-family:'Space Mono',monospace;font-size:11px;color:#a5a0ad">PREMIUM · TRACK + TIMED LYRICS</div>
+                <div style="margin-left:auto;font-family:'Space Mono',monospace;font-size:11px;color:#a5a0ad">TRACK + TIMED LYRICS</div>
+              </div>
+            </div>
+            <div data-if="hasAuthError" style="display:contents">
+              <div style="display:flex;gap:10px;align-items:flex-start;padding:13px 15px;border:1px solid rgba(255,96,96,0.35);background:rgba(255,96,96,0.08);border-radius:9px">
+                <div style="width:7px;height:7px;border-radius:50%;background:#ff6060;margin-top:5px;flex:none"></div>
+                <div style="font-size:12px;line-height:1.6;color:#f0b4b4">{{ authError }}</div>
               </div>
             </div>
             <div data-if="spotifyOff" style="display:contents">
               <button type="button" data-on-click="connect" style="display:flex;align-items:center;gap:12px;padding:16px 18px;border:1px solid rgba(255,255,255,0.14);background:rgba(255,255,255,0.03);border-radius:10px;color:#fff;font-family:inherit;font-size:14px;cursor:pointer;text-align:left" style-hover="background:rgba(255,255,255,0.07);border-color:rgba(255,255,255,0.28)">
                 <div style="width:8px;height:8px;border-radius:50%;border:1px solid rgba(255,255,255,0.35)"></div>
-                <div>Connect Spotify Premium</div>
+                <div>Connect Spotify</div>
                 <div style="margin-left:auto;font-family:'Space Mono',monospace;font-size:11px;color:#9d98a6">OAUTH →</div>
               </button>
             </div>
@@ -145,7 +172,7 @@
 
         <div style="display:flex;flex-direction:column;gap:16px">
           <button type="button" data-r="launch" data-on-click="launch" style="padding:18px;border-radius:10px;border:1px solid rgba(255,255,255,0.10);background:rgba(255,255,255,0.04);color:#9d98a6;font-family:inherit;font-size:14px;font-weight:500;letter-spacing:0.16em;cursor:default">START VISUALIZER</button>
-          <div style="font-family:'Space Mono',monospace;font-size:10.5px;line-height:1.7;color:#8f8a99">Spotify Premium is required — playback control is a Premium-only API. Auth is local: tokens are stored in Windows Credential Manager and never leave this machine. Loopback capture stays local; nothing is uploaded.</div>
+          <div style="font-family:'Space Mono',monospace;font-size:10.5px;line-height:1.7;color:#8f8a99">Any Spotify account works for the track, the artwork and the timed lyrics. Only the play/pause/skip buttons need Premium — that is a Premium-only API. Auth is local: tokens are stored in Windows Credential Manager and never leave this machine. Loopback capture stays local; nothing is uploaded.</div>
           <div style="display:flex;justify-content:space-between;align-items:center;padding-top:14px;border-top:1px solid rgba(255,255,255,0.07);font-family:'Space Mono',monospace;font-size:10px;letter-spacing:0.14em;color:#8f8a99">
             <div>BUILT BY ROBIN</div>
             <button type="button" data-on-click="openCredits" style="border:0;background:transparent;padding:0;font-family:'Space Mono',monospace;font-size:10px;letter-spacing:0.14em;color:#a5a0ad;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.2)" style-hover="color:#fff;border-color:#fff">CREDITS →</button>
