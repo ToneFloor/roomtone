@@ -24,7 +24,7 @@ use serde::Serialize;
 use std::path::PathBuf;
 
 /// The order here is the order in the preset dock.
-const BUILTIN: [(&str, &str); 12] = [
+const BUILTIN: [(&str, &str); 16] = [
     ("edge-glow.frag", include_str!("../../shaders/edge-glow.frag")),
     ("art-bloom.frag", include_str!("../../shaders/art-bloom.frag")),
     ("kinetic-type.frag", include_str!("../../shaders/kinetic-type.frag")),
@@ -37,6 +37,10 @@ const BUILTIN: [(&str, &str); 12] = [
     ("liquid-metal.frag", include_str!("../../shaders/liquid-metal.frag")),
     ("kaleido.frag", include_str!("../../shaders/kaleido.frag")),
     ("spotlights.frag", include_str!("../../shaders/spotlights.frag")),
+    ("synth-grid.frag", include_str!("../../shaders/synth-grid.frag")),
+    ("ridgeline.frag", include_str!("../../shaders/ridgeline.frag")),
+    ("ink.frag", include_str!("../../shaders/ink.frag")),
+    ("lava.frag", include_str!("../../shaders/lava.frag")),
 ];
 
 #[derive(Debug, Clone, Serialize)]

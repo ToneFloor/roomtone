@@ -16,6 +16,7 @@ precision highp float;
 
 // @name      Starfield
 // @author    ROOMTONE
+// @group     Ambient
 // @param     density  0.30 .. 3.00 = 1.00  "Star density"
 // @param     warp     0.00 .. 3.00 = 1.00  "Warp speed"
 // @param     streak   0.00 .. 1.00 = 0.55  "Streak length"

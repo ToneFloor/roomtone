@@ -21,11 +21,13 @@
 //   // @name      Warp Tunnel
 //   // @author    yourname
 //   // @param     depth    0.0 .. 4.0  = 1.2   "Tunnel depth"
+//   // @group     Club          (Club, Ambient, Lyrics — or a name of your own)
 //   // @feedback  true
 
 const NAME = /^\s*\/\/\s*@name\s+(.+?)\s*$/m;
 const AUTHOR = /^\s*\/\/\s*@author\s+(.+?)\s*$/m;
 const FEEDBACK = /^\s*\/\/\s*@feedback\s+(\w+)\s*$/m;
+const GROUP = /^\s*\/\/\s*@group\s+(.+?)\s*$/m;
 const PARAM =
   /^\s*\/\/\s*@param\s+(\w+)\s+(-?[\d.]+)\s*\.\.\s*(-?[\d.]+)\s*=\s*(-?[\d.]+)\s*(?:"([^"]*)")?\s*$/gm;
 
@@ -63,6 +65,9 @@ export function parsePreset({ file, source, kind, mtime }) {
     id: file.replace(/\.frag$/i, ''),
     name: (source.match(NAME) || [])[1] || labelFromFile(file),
     author: (source.match(AUTHOR) || [])[1] || null,
+    // Where it sits in the dock. A shader somebody dropped in the folder
+    // without saying goes with the other things they made.
+    group: (source.match(GROUP) || [])[1] || (kind === 'user' ? 'Yours' : 'Club'),
     feedback: ((source.match(FEEDBACK) || [])[1] || 'false').toLowerCase() === 'true',
     params,
   };

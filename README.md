@@ -4,7 +4,7 @@ Audio-reactive room lighting for Windows. It listens to what your speakers are
 actually playing, reads the track and its timed lyrics from Spotify, and turns a
 screen into light that follows the music.
 
-Twelve WebGL2 shader presets, word-by-word karaoke, kinetic typography on the
+Sixteen WebGL2 shader presets in three groups (Club, Ambient, Lyrics), word-by-word karaoke, kinetic typography on the
 beat, and a colour palette pulled out of the album art so the room follows the
 record rather than the app.
 

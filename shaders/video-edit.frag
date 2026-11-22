@@ -16,6 +16,7 @@ precision highp float;
 
 // @name      Video Edit
 // @author    ROOMTONE
+// @group     Lyrics
 // @param     grade    0.00 .. 2.00 = 1.00  "Colour grade"
 // @param     split    0.00 .. 2.50 = 1.00  "RGB split"
 // @param     scan     0.00 .. 1.50 = 0.60  "Scanlines"

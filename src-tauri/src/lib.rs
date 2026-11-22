@@ -80,6 +80,12 @@ fn open_external(url: String) -> Result<(), String> {
     Err("Windows only".into())
 }
 
+/// The window tells us when it is hidden, so the 60 Hz stream can stop.
+#[tauri::command]
+fn audio_emit(on: bool) {
+    audio::set_emitting(on);
+}
+
 #[tauri::command]
 fn audio_info() -> audio::AudioInfo {
     audio::info()
@@ -608,6 +614,7 @@ pub fn run() {
             autostart_get,
             autostart_set,
             open_external,
+            audio_emit,
             audio_info,
             audio_devices,
             audio_apps,

@@ -16,6 +16,7 @@ precision highp float;
 
 // @name      Spectrum Ring
 // @author    ROOMTONE
+// @group     Club
 // @param     radius   0.15 .. 0.60 = 0.30  "Ring radius"
 // @param     depth    0.20 .. 2.00 = 1.00  "Bar depth"
 // @param     spin     -2.00 .. 2.00 = 0.35 "Spin speed"

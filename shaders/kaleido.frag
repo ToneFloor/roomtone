@@ -16,6 +16,7 @@ precision highp float;
 
 // @name      Kaleidoscope
 // @author    ROOMTONE
+// @group     Club
 // @param     slices   3.00 .. 16.00 = 6.00 "Mirror count"
 // @param     zoom     0.40 .. 2.50 = 1.00  "Zoom"
 // @param     churn    0.00 .. 2.00 = 0.70  "Churn"

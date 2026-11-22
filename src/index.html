@@ -55,11 +55,11 @@
 <div data-r="root" data-ref="rootRef" style="position:fixed;inset:0;background:#000;color:#fff;font-family:'Space Grotesk',Helvetica,Arial,sans-serif;overflow:hidden;text-wrap:pretty">
 
   <div data-if="isOnboard" style="display:contents">
-    <div style="position:absolute;inset:0;display:flex;flex-direction:column;padding:48px;overflow-y:auto">
+    <div data-scroll="onboard" data-r="onboardScroll" style="position:absolute;inset:0;display:flex;flex-direction:column;padding:48px 48px 0;overflow-y:auto">
       <div style="position:fixed;inset:0;background:radial-gradient(130% 90% at 50% 118%, rgba(124,92,255,0.22), transparent 66%);pointer-events:none"></div>
       <div style="position:relative;width:100%;max-width:660px;margin:auto;flex:none;display:flex;flex-direction:column;gap:38px">
 
-        <div style="display:flex;flex-direction:column;gap:10px">
+        <div data-anim="ob-head" style="display:flex;flex-direction:column;gap:10px;animation:rtrise 0.6s cubic-bezier(0.2,0.8,0.2,1) both;animation-delay:0ms">
           <div style="display:flex;align-items:baseline;gap:14px">
             <div style="font-size:38px;font-weight:700;letter-spacing:0.18em;line-height:1">ROOMTONE</div>
             <div style="width:9px;height:9px;border-radius:50%;background:var(--a,#7c5cff);box-shadow:0 0 18px var(--a,#7c5cff)"></div>
@@ -69,7 +69,7 @@
 
         <div style="display:flex;flex-direction:column;gap:26px">
 
-          <div style="display:flex;flex-direction:column;gap:12px">
+          <div data-anim="ob-1" style="display:flex;flex-direction:column;gap:12px;animation:rtrise 0.6s cubic-bezier(0.2,0.8,0.2,1) both;animation-delay:70ms">
             <div style="display:flex;align-items:center;gap:14px">
               <div style="font-family:'Space Mono',monospace;font-size:11px;color:#9d98a6;letter-spacing:0.14em">01</div>
               <div style="font-size:15px;font-weight:500;letter-spacing:0.02em">Audio capture</div>
@@ -102,7 +102,7 @@
             <div style="font-size:10.5px;line-height:1.6;color:#8f8a99">Capturing one app takes its audio before it reaches the speaker mix, so notifications and game sound do not land in the visual. Needs Windows 10 build 20348 or newer; anything older falls back to the whole output.</div>
           </div>
 
-          <div style="display:flex;flex-direction:column;gap:12px">
+          <div data-anim="ob-2" style="display:flex;flex-direction:column;gap:12px;animation:rtrise 0.6s cubic-bezier(0.2,0.8,0.2,1) both;animation-delay:140ms">
             <div style="display:flex;align-items:center;gap:14px">
               <div style="font-family:'Space Mono',monospace;font-size:11px;color:#9d98a6;letter-spacing:0.14em">02</div>
               <div style="font-size:15px;font-weight:500;letter-spacing:0.02em">Output display</div>
@@ -119,15 +119,27 @@
               </div>
             </div>
           </div>
-        </div>          <div style="display:flex;flex-direction:column;gap:12px">
+        </div>
+
+          <div data-r="spotifyStep" data-anim="ob-3" style="display:flex;flex-direction:column;gap:12px;animation:rtrise 0.6s cubic-bezier(0.2,0.8,0.2,1) both;animation-delay:210ms">
             <div style="display:flex;align-items:center;gap:14px">
               <div style="font-family:'Space Mono',monospace;font-size:11px;color:#9d98a6;letter-spacing:0.14em">03</div>
               <div style="font-size:15px;font-weight:500;letter-spacing:0.02em">Track names and lyrics</div>
               <div style="font-family:'Space Mono',monospace;font-size:10px;letter-spacing:0.12em;padding:3px 8px;border-radius:4px;border:1px solid rgba(45,226,150,0.4);color:#2de296">OPTIONAL</div>
             </div>
-            <div style="font-size:12px;line-height:1.65;color:#8f8a99;margin-top:-2px">You do not need this to use ROOMTONE. The visuals run on whatever your speakers are playing. Connecting Spotify adds the track name, the colours taken from the album art, and the word-by-word lyrics.</div>
-            <div data-if="needClientId" style="display:contents">
-              <div style="display:flex;flex-direction:column;gap:14px;padding:18px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.02);border-radius:10px">
+            <div style="font-size:12px;line-height:1.65;color:#8f8a99;margin-top:-2px">Skip it and the visuals still run on whatever is playing. Connecting Spotify adds the track name, colours from the album art, and word-by-word lyrics.</div>
+            <div data-if="spotifyCollapsed" style="display:contents">
+              <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+                <button type="button" data-on-click="openSpotifySetup" style="display:flex;align-items:center;gap:12px;flex:1;min-width:240px;padding:16px 18px;border:1px solid rgba(255,255,255,0.14);background:rgba(255,255,255,0.03);border-radius:10px;color:#fff;font-family:inherit;font-size:14px;cursor:pointer;text-align:left;transition:background .18s,border-color .18s" style-hover="background:rgba(255,255,255,0.07);border-color:rgba(255,255,255,0.28)">
+                  <div style="width:8px;height:8px;border-radius:50%;border:1px solid rgba(255,255,255,0.35)"></div>
+                  <div>Set up Spotify</div>
+                  <div style="margin-left:auto;font-family:'Space Mono',monospace;font-size:11px;color:#9d98a6">ABOUT 2 MIN &rarr;</div>
+                </button>
+                <button type="button" data-on-click="openGuide" style="border:0;background:transparent;padding:0;font-family:'Space Mono',monospace;font-size:10px;letter-spacing:0.14em;color:#a5a0ad;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.2)" style-hover="color:#fff;border-color:#fff">SETUP GUIDE &#8599;</button>
+              </div>
+            </div>
+            <div data-if="spotifyExpanded" style="display:contents">
+              <div data-anim="ob-cid" style="animation:rtrise 0.4s cubic-bezier(0.2,0.8,0.2,1) both;display:flex;flex-direction:column;gap:14px;padding:18px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.02);border-radius:10px">
                 <div style="font-size:12.5px;line-height:1.65;color:#b0abb8">ROOMTONE needs a Spotify Client ID. Spotify only lets a developer app run while the account that made it has <b style="color:#c9c4d1;font-weight:500">Premium</b>, and only for up to five people its owner adds by hand. So: if you have Premium, make your own below. If you do not, ask a friend with Premium to add you to their app and paste their Client ID. The setup guide walks through both.</div>
                 <button type="button" data-on-click="openGuide" style="align-self:flex-start;padding:9px 14px;border-radius:8px;border:1px solid rgba(124,92,255,0.55);background:rgba(124,92,255,0.16);color:#fff;font-family:inherit;font-size:12px;cursor:pointer" style-hover="background:rgba(124,92,255,0.28);border-color:rgba(124,92,255,0.9)">OPEN THE SETUP GUIDE &rarr;</button>
                 <div style="display:flex;flex-direction:column;gap:9px;font-size:12px;line-height:1.6;color:#9d98a6">
@@ -176,13 +188,15 @@
 
 
 
-        <div style="display:flex;flex-direction:column;gap:16px">
-          <button type="button" data-r="launch" data-on-click="launch" style="padding:18px;border-radius:10px;border:1px solid rgba(255,255,255,0.10);background:rgba(255,255,255,0.04);color:#9d98a6;font-family:inherit;font-size:14px;font-weight:500;letter-spacing:0.16em;cursor:default">START VISUALIZER</button>
-          <div style="font-family:'Space Mono',monospace;font-size:10.5px;line-height:1.7;color:#8f8a99">No account is needed to start — press START and the visuals run on whatever is playing. Spotify is optional. A free account can sign in for the track, the artwork and the timed lyrics, as long as the Client ID belongs to someone with Premium. The play/pause/skip buttons need Premium on your own account too. Auth is local: tokens are stored in Windows Credential Manager and never leave this machine. Loopback capture stays local; nothing is uploaded.</div>
-          <div style="display:flex;justify-content:space-between;align-items:center;padding-top:14px;border-top:1px solid rgba(255,255,255,0.07);font-family:'Space Mono',monospace;font-size:10px;letter-spacing:0.14em;color:#8f8a99">
-            <div>BUILT BY ROBIN</div>
-            <button type="button" data-on-click="openCredits" style="border:0;background:transparent;padding:0;font-family:'Space Mono',monospace;font-size:10px;letter-spacing:0.14em;color:#a5a0ad;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.2)" style-hover="color:#fff;border-color:#fff">CREDITS →</button>
-          </div>
+        <div data-anim="ob-foot" style="display:flex;justify-content:space-between;align-items:center;gap:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.07);font-family:'Space Mono',monospace;font-size:10px;letter-spacing:0.14em;color:#8f8a99;animation:rtrise 0.6s cubic-bezier(0.2,0.8,0.2,1) both;animation-delay:280ms">
+          <div>NOTHING LEAVES THIS PC &middot; BUILT BY ROBIN</div>
+          <button type="button" data-on-click="openCredits" style="border:0;background:transparent;padding:0;font-family:'Space Mono',monospace;font-size:10px;letter-spacing:0.14em;color:#a5a0ad;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.2)" style-hover="color:#fff;border-color:#fff">CREDITS &rarr;</button>
+        </div>
+      </div>
+      <div data-anim="ob-start" style="position:sticky;bottom:0;flex:none;margin:28px -48px 0;padding:22px 48px 26px;background:linear-gradient(to bottom, rgba(0,0,0,0), rgba(0,0,0,0.88) 40%);z-index:2;animation:rtrise 0.6s cubic-bezier(0.2,0.8,0.2,1) both;animation-delay:260ms">
+        <div style="max-width:660px;margin:0 auto;display:flex;align-items:center;gap:18px">
+          <button type="button" data-r="launch" data-on-click="launch" style="flex:1;padding:18px;border-radius:10px;border:1px solid rgba(255,255,255,0.10);background:rgba(255,255,255,0.04);color:#9d98a6;font-family:inherit;font-size:14px;font-weight:500;letter-spacing:0.16em;cursor:default;transition:background .25s,color .25s,box-shadow .5s">START VISUALIZER</button>
+          <div style="font-family:'Space Mono',monospace;font-size:10px;letter-spacing:0.16em;color:#8f8a99;white-space:nowrap">OR PRESS ENTER</div>
         </div>
       </div>
     </div>
@@ -260,11 +274,14 @@
       <div data-r="stageWrap" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:118px 0 158px;pointer-events:none">
         <div data-r="stage" style="display:flex;flex-direction:column;align-items:center;gap:26px;pointer-events:auto;transition:transform 0.65s cubic-bezier(0.2,0.9,0.2,1),opacity 0.5s ease">
 
+          <div data-r="coverWrap" style="position:relative;flex:none;will-change:transform">
+          <div data-r="coverGlow" style="position:absolute;inset:0;border-radius:6px;box-shadow:0 0 110px 6px var(--a,#7c5cff);opacity:0.2;will-change:opacity;pointer-events:none"></div>
           <div data-r="cover" data-on-click="toggleLyrics" style="position:relative;width:min(340px,28vh);height:min(340px,28vh);border-radius:6px;overflow:hidden;cursor:pointer;background:linear-gradient(135deg, var(--a2,#2a1160) 0%, var(--a,#7c5cff) 58%, #08040f 100%);box-shadow:0 40px 120px rgba(0,0,0,0.7)">
             <div style="position:absolute;inset:0;background:repeating-linear-gradient(115deg, rgba(255,255,255,0.055) 0 2px, transparent 2px 9px)"></div>
             <div data-r="ring" style="position:absolute;left:50%;top:50%;width:56%;height:56%;margin:-28% 0 0 -28%;border-radius:50%;border:1px solid rgba(0,0,0,0.42);box-shadow:inset 0 0 0 22px rgba(255,255,255,0.05)"></div>
             <div style="position:absolute;left:50%;top:50%;width:13%;height:13%;margin:-6.5% 0 0 -6.5%;border-radius:50%;background:#08040f"></div>
             <div style="position:absolute;left:16px;bottom:14px;font-family:'Space Mono',monospace;font-size:9.5px;letter-spacing:0.2em;color:rgba(255,255,255,0.55)" data-r="coverTag">COVER ART · FROM API</div>
+          </div>
           </div>
 
           <div style="display:flex;flex-direction:column;align-items:center;gap:7px">
@@ -321,14 +338,15 @@
         </div>
       </div>
 
-      <div data-r="chrome" data-r2="dock" style="position:absolute;left:20px;right:20px;bottom:22px;display:flex;flex-wrap:wrap;justify-content:center;align-items:flex-end;gap:8px;transition:opacity 0.4s ease;pointer-events:none">
+      <div data-r="chrome" data-r2="dock" style="position:absolute;left:20px;right:20px;bottom:22px;display:flex;flex-wrap:wrap;justify-content:center;align-items:flex-end;gap:22px 8px;container-type:inline-size;--n:{{ presetCount }};transition:opacity 0.4s ease;pointer-events:none">
         <div data-for="presets" data-as="p" style="display:contents">
-          <button type="button" data-r="pbtn" data-v="{{ p.v }}" data-on-click="p.on" title="{{ p.label }}" style="display:flex;flex-direction:column;gap:6px;padding:7px;border:1px solid rgba(255,255,255,0.07);border-radius:12px;background:rgba(7,5,13,0.72);backdrop-filter:blur(14px);cursor:pointer;pointer-events:auto">
-            <div data-r="pthumb" data-v="{{ p.v }}" style="position:relative;width:76px;height:46px;border-radius:6px;overflow:hidden;background:#0a0812;border:1px solid rgba(255,255,255,0.12)">
+          <button type="button" data-r="pbtn" data-v="{{ p.v }}" data-on-click="p.on" title="{{ p.label }}" style="display:flex;flex-direction:column;gap:6px;padding:7px;border:1px solid rgba(255,255,255,0.07);border-radius:12px;background:rgba(9,7,15,0.86);cursor:pointer;pointer-events:auto;position:relative;margin-left:{{ p.gap }};width:clamp(58px, calc((100cqw - 34px) / var(--n) - 8px), 98px);transition:transform 0.18s cubic-bezier(0.2,0.9,0.2,1),border-color 0.18s ease" style-hover="transform:translateY(-3px);border-color:rgba(255,255,255,0.26)">
+            <div data-if="p.head" style="position:absolute;left:3px;top:-17px;font-family:'Space Mono',monospace;font-size:8.5px;letter-spacing:0.22em;color:rgba(255,255,255,0.5);white-space:nowrap;pointer-events:none">{{ p.group }}</div>
+            <div data-r="pthumb" data-v="{{ p.v }}" style="position:relative;width:100%;aspect-ratio:68/42;border-radius:6px;overflow:hidden;background:#0a0812;border:1px solid rgba(255,255,255,0.12)">
               <div data-r="pfx" data-v="{{ p.v }}" style="position:absolute;inset:0"></div>
               <div data-r="ponly" data-v="{{ p.v }}" style="position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(6,4,12,0.86);font-family:'Space Mono',monospace;font-size:7px;line-height:1.4;letter-spacing:0.12em;color:rgba(255,255,255,0.6);text-align:center">SHADER<br>ONLY</div>
             </div>
-            <div data-r="plabel" data-v="{{ p.v }}" style="font-family:'Space Mono',monospace;font-size:9.5px;letter-spacing:0.11em;color:#9d98a6;text-align:center">{{ p.label }}</div>
+            <div data-r="plabel" data-v="{{ p.v }}" style="font-family:'Space Mono',monospace;font-size:8.5px;letter-spacing:0.08em;color:#9d98a6;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:color 0.2s ease">{{ p.label }}</div>
           </button>
         </div>
       </div>
@@ -345,7 +363,7 @@
   </div>
 
   <div data-if="isPlayer" style="display:contents">
-    <div data-r="panel" style="position:absolute;top:0;right:0;bottom:0;width:372px;z-index:40;background:rgba(7,4,13,0.95);backdrop-filter:blur(22px);border-left:1px solid rgba(255,255,255,0.10);transform:translateX(100%);transition:transform 0.42s cubic-bezier(0.2,0.9,0.2,1);display:flex;flex-direction:column;overflow-y:auto">
+    <div data-r="panel" data-scroll="settings" style="position:absolute;top:0;right:0;bottom:0;width:372px;z-index:40;background:rgba(7,4,13,0.95);backdrop-filter:blur(22px);border-left:1px solid rgba(255,255,255,0.10);transform:translateX(100%);transition:transform 0.42s cubic-bezier(0.2,0.9,0.2,1);display:flex;flex-direction:column;overflow-y:auto">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:24px 24px 18px;border-bottom:1px solid rgba(255,255,255,0.08)">
         <div style="font-family:'Space Mono',monospace;font-size:11px;letter-spacing:0.22em;color:rgba(255,255,255,0.85)">SETTINGS</div>
         <button type="button" data-on-click="closeSettings" style="width:28px;height:28px;border-radius:50%;border:1px solid rgba(255,255,255,0.16);background:transparent;color:rgba(255,255,255,0.6);font-size:13px;cursor:pointer" style-hover="color:#fff;border-color:#fff">×</button>
@@ -487,7 +505,7 @@
   </div>
 
   <div data-if="showTray" style="display:contents">
-    <div data-r="ovl" data-v="tray" style="animation:rtenter 0.26s ease both;position:absolute;inset:0;z-index:44;overflow:hidden;background:#0b0a12">
+    <div data-r="ovl" data-v="tray" data-anim="ovl-tray" style="animation:rtenter 0.26s ease both;position:absolute;inset:0;z-index:44;overflow:hidden;background:#0b0a12">
       <div data-r="trayGlow" style="position:absolute;inset:-14%;opacity:0;pointer-events:none;filter:blur(120px) saturate(1.3);animation:rtdrift 42s ease-in-out infinite">
         <div style="position:absolute;inset:0;background:radial-gradient(34% 38% at 28% 60%, var(--a,#7c5cff) 0%, transparent 68%),radial-gradient(38% 34% at 72% 38%, var(--a2,#2a1160) 0%, transparent 70%)"></div>
       </div>
@@ -555,7 +573,7 @@
   </div>
 
   <div data-if="showDebug" style="display:contents">
-    <div data-r="dbgPanel" data-v="debug" style="animation:rtrise 0.28s cubic-bezier(0.2,0.9,0.2,1) both;position:absolute;z-index:52;top:130px;left:20px;width:238px;display:flex;flex-direction:column;gap:0;border:1px solid rgba(255,255,255,0.12);border-radius:9px;background:rgba(4,3,8,0.93);backdrop-filter:blur(10px);overflow-y:auto;font-family:'Space Mono',monospace">
+    <div data-r="dbgPanel" data-v="debug" data-anim="debug" style="animation:rtrise 0.28s cubic-bezier(0.2,0.9,0.2,1) both;position:absolute;z-index:52;top:130px;left:20px;width:238px;display:flex;flex-direction:column;gap:0;border:1px solid rgba(255,255,255,0.12);border-radius:9px;background:rgba(4,3,8,0.93);backdrop-filter:blur(10px);overflow-y:auto;font-family:'Space Mono',monospace">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.10)">
         <div style="font-size:9px;letter-spacing:0.2em;color:rgba(255,255,255,0.75)">DIAGNOSTICS</div>
         <button type="button" data-on-click="closeDebug" style="border:0;background:transparent;padding:0;font-size:11px;color:rgba(255,255,255,0.4);cursor:pointer" style-hover="color:#fff">×</button>
@@ -580,7 +598,7 @@
   </div>
 
   <div data-if="showLyrics" style="display:contents">
-    <div data-r="ovl" data-v="lyrics" style="animation:rtenter 0.30s ease both;position:absolute;inset:0;z-index:45;background:#050308;display:flex;flex-direction:column">
+    <div data-r="ovl" data-v="lyrics" data-anim="ovl-lyrics" style="animation:rtenter 0.30s ease both;position:absolute;inset:0;z-index:45;background:#050308;display:flex;flex-direction:column">
       <div data-r="lyrBloom" style="position:absolute;inset:-12%;opacity:0.22;pointer-events:none;filter:blur(120px) saturate(1.3);animation:rtdrift 38s ease-in-out infinite">
         <div style="position:absolute;inset:0;background:radial-gradient(38% 42% at 30% 30%, var(--a,#7c5cff) 0%, transparent 68%),radial-gradient(40% 40% at 72% 74%, var(--a2,#2a1160) 0%, transparent 70%)"></div>
       </div>
@@ -623,7 +641,7 @@
   </div>
 
   <div data-if="showTour" style="display:contents">
-    <div data-r="ovl" data-v="tour" style="animation:rtenter 0.30s ease both;position:absolute;inset:0;z-index:48;background:rgba(3,2,6,0.72);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:40px">
+    <div data-r="ovl" data-v="tour" data-anim="ovl-tour" style="animation:rtenter 0.30s ease both;position:absolute;inset:0;z-index:48;background:rgba(3,2,6,0.72);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:40px">
       <div style="width:100%;max-width:460px;display:flex;flex-direction:column;gap:26px;padding:32px;border:1px solid rgba(255,255,255,0.10);border-radius:16px;background:rgba(9,6,15,0.95);box-shadow:0 40px 110px rgba(0,0,0,0.6)">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:16px">
           <div data-r="tourNum" style="font-family:'Space Mono',monospace;font-size:10px;letter-spacing:0.2em;color:var(--a,#7c5cff)">01 / 04</div>
@@ -649,8 +667,8 @@
   </div>
 
   <div data-if="showCredits" style="display:contents">
-    <div data-r="ovl" data-v="credits" style="animation:rtenter 0.30s ease both;position:absolute;inset:0;z-index:50;background:#040208;display:flex;flex-direction:column;padding:48px;overflow-y:auto">
-      <div data-selectable style="width:100%;max-width:760px;margin:auto;flex:none;display:flex;flex-direction:column;gap:30px;animation:rtrise 0.44s cubic-bezier(0.2,0.9,0.2,1) both">
+    <div data-r="ovl" data-v="credits" data-anim="ovl-credits" style="animation:rtenter 0.30s ease both;position:absolute;inset:0;z-index:50;background:#040208;display:flex;flex-direction:column;padding:48px;overflow-y:auto">
+      <div data-selectable data-anim="credits-body" style="width:100%;max-width:760px;margin:auto;flex:none;display:flex;flex-direction:column;gap:30px;animation:rtrise 0.44s cubic-bezier(0.2,0.9,0.2,1) both">
 
         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:24px">
           <div style="display:flex;flex-direction:column;gap:8px">

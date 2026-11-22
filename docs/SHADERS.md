@@ -66,6 +66,7 @@ Lines beginning `// @` at the top of the file configure the preset.
 | `@name` | What the dock shows. Without it, the file name is used. |
 | `@author` | Shown in the preset's settings group. Optional. |
 | `@param` | `name  min .. max = default  "Label"` — creates a slider **and** a uniform of that name. |
+| `@group` | Where the preset sits in the dock: `Club`, `Ambient`, `Lyrics`, or a name of your own. Optional; your shaders default to `Yours`. |
 | `@feedback` | `true` if you sample `uPrevFrame`. |
 
 Each `@param` becomes a `uniform float` you declare and use like any other. The

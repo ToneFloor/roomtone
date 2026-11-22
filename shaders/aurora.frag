@@ -16,6 +16,7 @@ precision highp float;
 
 // @name      Aurora
 // @author    ROOMTONE
+// @group     Ambient
 // @param     curtains 1.00 .. 6.00 = 3.00  "Curtain count"
 // @param     drift    0.00 .. 2.00 = 0.70  "Drift speed"
 // @param     height   0.20 .. 1.20 = 0.70  "Curtain height"

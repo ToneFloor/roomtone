@@ -114,7 +114,7 @@ const SHORTCUTS = [
 ];
 
 const TOUR = [
-  { t: 'Eleven looks, one dock', b: 'The strip along the bottom switches the visualizer. Every thumbnail is live, so you can see what each one is doing before you pick it — and any .frag file you drop in the shaders folder joins the strip on its own.', k: 'KEYS 1 – 9, 0' },
+  { t: 'Every look, one dock', b: 'The strip along the bottom switches the visualizer. Every thumbnail is live, so you can see what each one is doing before you pick it — and any .frag file you drop in the shaders folder joins the strip on its own.', k: 'KEYS 1 – 9, 0' },
   { t: 'The cover opens up', b: 'Click the album art to drop into kinetic type, where lyric words land on the beat. L opens the full sheet to scroll the song and jump to any line. K is karaoke — the line fills in word by word as it is sung, with a count-in before you come in.', k: 'L FOR THE SHEET · K FOR KARAOKE' },
   { t: 'Take over the screen', b: 'Press F and the window drops its title bar and fills the monitor it is on, exactly, taskbar and all. Escape brings it back. It measures whatever display you put it on, so an ultrawide gets an ultrawide.', k: 'F FOR FULLSCREEN · ESC TO EXIT' },
   { t: 'Feed it real audio', b: 'ROOMTONE reads Windows loopback, so it reacts to anything your speakers are playing — Spotify, a game, a video. Real frequency bands and kick detection, measured live.', k: 'S FOR SETTINGS' },
@@ -154,6 +154,27 @@ const LEGACY = {
   'video-edit': 'edit',
   'spectrum-ring': 'spectrum',
   'flow-field': 'flow',
+};
+
+/** Dock order. Anything else — a group a user invented — follows, by name. */
+const GROUP_ORDER = ['Club', 'Ambient', 'Lyrics'];
+
+/**
+ * A thumbnail for each preset that has no CSS twin to borrow one from. These
+ * are sketches, not renders: enough shape that sixteen tiles can be told apart
+ * at a glance without compiling sixteen shaders into sixteen tiny canvases.
+ */
+const THUMBS = {
+  'warp-tunnel': (a) => 'repeating-radial-gradient(circle at 50% 50%, transparent 0 5px,' + a + ' 5px 6px)',
+  starfield: (a) => 'radial-gradient(1.5px 1.5px at 20% 30%,#fff,transparent),radial-gradient(1.5px 1.5px at 70% 22%,#fff,transparent),radial-gradient(2px 2px at 46% 62%,' + a + ',transparent),radial-gradient(1.5px 1.5px at 84% 70%,#fff,transparent),radial-gradient(1.5px 1.5px at 30% 80%,' + a + ',transparent)',
+  aurora: (a) => 'linear-gradient(to top, transparent 8%,' + a + ' 46%, transparent 86%),repeating-linear-gradient(96deg, rgba(0,0,0,0.75) 0 5px, transparent 5px 13px)',
+  'liquid-metal': (a) => 'conic-gradient(from 40deg at 40% 55%, #0a0812,' + a + ', #e9e6f2, #0a0812,' + a + ', #0a0812)',
+  kaleido: (a) => 'repeating-conic-gradient(from 0deg at 50% 50%,' + a + ' 0 12deg, transparent 12deg 30deg)',
+  spotlights: (a) => 'conic-gradient(from 150deg at 22% -10%, transparent 0 8deg,' + a + ' 14deg, transparent 22deg),conic-gradient(from 168deg at 78% -10%, transparent 0 8deg, rgba(255,255,255,0.8) 14deg, transparent 22deg)',
+  'synth-grid': (a) => 'linear-gradient(to bottom, transparent 0 46%,' + a + ' 48% 50%, transparent 52%),repeating-linear-gradient(90deg,' + a + ' 0 1px, transparent 1px 9px),repeating-linear-gradient(0deg,' + a + ' 0 1px, transparent 1px 7px)',
+  ridgeline: (a) => 'repeating-linear-gradient(to bottom, transparent 0 6px,' + a + ' 6px 7px)',
+  ink: (a) => 'radial-gradient(42% 60% at 34% 44%,' + a + ', transparent 72%),radial-gradient(34% 46% at 70% 62%, rgba(255,255,255,0.55), transparent 74%)',
+  lava: (a) => 'radial-gradient(26% 40% at 34% 66%,' + a + ' 60%, transparent 64%),radial-gradient(20% 30% at 62% 34%,' + a + ' 58%, transparent 63%),radial-gradient(12% 18% at 74% 72%, rgba(255,255,255,0.7) 55%, transparent 62%)',
 };
 
 /** '#7c5cff' -> [0.49, 0.36, 1.0]. Shaders want components, not a string. */
@@ -244,9 +265,36 @@ class Roomtone {
   }
 
   draw() {
+    // Every draw rebuilds the tree, which used to throw away two things a
+    // person can see: how far a panel was scrolled (choosing the second display
+    // jumped setup back to the top), and whether a panel had already arrived
+    // (flipping a switch in the tray replayed its fade-in). Carry both across.
+    const scrolls = {};
+    if (this.mount) {
+      for (const el of this.mount.querySelectorAll('[data-scroll]')) scrolls[el.dataset.scroll] = el.scrollTop;
+    }
     this.refs = {};
+    this.drawN = (this.drawN || 0) + 1;
+    this._layoutDirty = true;
     const tree = render(this.template, this.renderVals(), this.refs);
+    // An entrance that is still running picks up where it was rather than
+    // being cut off: boot alone redraws several times in its first second.
+    const seen = this.animSeen || new Map();
+    const stamp = performance.now();
+    this.animSeen = new Map();
+    for (const el of tree.querySelectorAll('[data-anim]')) {
+      const key = el.dataset.anim;
+      const since = seen.has(key) ? seen.get(key) : stamp;
+      this.animSeen.set(key, since);
+      const elapsed = stamp - since;
+      if (elapsed > 1200) el.style.animation = 'none';
+      else if (elapsed > 0) el.style.animationDelay = ((parseFloat(el.style.animationDelay) || 0) * (/ms$/.test(el.style.animationDelay) ? 1 : 1000) - elapsed) + 'ms';
+    }
     this.mount.replaceChildren(tree);
+    for (const el of this.mount.querySelectorAll('[data-scroll]')) {
+      const top = scrolls[el.dataset.scroll];
+      if (top) el.scrollTop = top;
+    }
     this.root = tree;
     this.cache();
     this.sync();
@@ -451,6 +499,10 @@ class Roomtone {
 
     const errors = [];
     this.presets = files.map(parsePreset);
+    // Grouped in the dock: the loud ones, the calm ones, the ones that need
+    // lyrics. The sort is stable, so the order inside a group is the file's.
+    const rank = (p) => { const i = GROUP_ORDER.indexOf(p.group); return i < 0 ? GROUP_ORDER.length : i; };
+    this.presets.sort((a, b) => rank(a) - rank(b) || (rank(a) === GROUP_ORDER.length ? a.group.localeCompare(b.group) : 0));
 
     for (const preset of this.presets) {
       if (!this.params[preset.id]) {
@@ -577,6 +629,11 @@ class Roomtone {
       // machine but the developer's this is the actual first thing to do — and
       // until this screen existed, the connect button simply did nothing.
       needClientId: !s.spotify && !this.clientIdSet,
+      // The five-step Client ID walkthrough is a wall of text on a screen whose
+      // job is to get to START. Show one button until someone asks for it.
+      spotifyCollapsed: !s.spotify && !this.clientIdSet && !this.spotifyOpen,
+      spotifyExpanded: !s.spotify && !this.clientIdSet && !!this.spotifyOpen,
+      openSpotifySetup: () => { this.spotifyOpen = true; this.draw(); },
       cidDraft: this.cidDraft || '',
       cidInput: (e) => { this.cidDraft = e.target.value; },
       redirectUri: 'http://127.0.0.1:8888/callback',
@@ -585,7 +642,7 @@ class Roomtone {
       // A saved Client ID that Spotify refuses (its owner has no Premium, or
       // you are not on its User Management list) used to be a dead end: the
       // paste box only showed while no ID was set. Bring it back.
-      changeClientId: () => { this.clientIdSet = false; this.authError = ''; this.draw(); },
+      changeClientId: () => { this.clientIdSet = false; this.spotifyOpen = true; this.authError = ''; this.draw(); },
       copyRedirect: () => {
         navigator.clipboard.writeText('http://127.0.0.1:8888/callback')
           .then(() => this.say('REDIRECT URI COPIED'))
@@ -609,11 +666,19 @@ class Roomtone {
       targets,
       // The dock is whatever .frag files exist — the six built-ins plus
       // anything in %APPDATA%/roomtone/shaders.
-      presets: this.presets.map((preset) => ({
-        v: preset.id,
-        label: preset.name.toUpperCase(),
-        on: () => this.choosePreset(preset.id),
-      })),
+      presetCount: String(Math.max(1, this.presets.length)),
+      presets: this.presets.map((preset, i, all) => {
+        const head = i === 0 || all[i - 1].group !== preset.group;
+        return {
+          v: preset.id,
+          label: preset.name.toUpperCase(),
+          // The first tile of each group carries the group's name and a gap.
+          head,
+          group: preset.group.toUpperCase(),
+          gap: head && i > 0 ? '16px' : '0px',
+          on: () => this.choosePreset(preset.id),
+        };
+      }),
       echoes: [0, 1, 2, 3, 4, 5, 6],
       editRows: [0, 1, 2],
       isPlayer: s.screen === 'player',
@@ -665,7 +730,16 @@ class Roomtone {
       openSettings: () => this.setState({ settings: true }),
       // 'onboard' is the setup screen. This said 'setup', which no view
       // matches, so the Settings row opened a blank window.
-      backToSetup: () => this.setState({ settings: false, screen: 'onboard' }),
+      backToSetup: () => {
+        this.spotifyOpen = true;
+        this.setState({ settings: false, screen: 'onboard' });
+        // Arriving from "Spotify → SET UP" lands on the Spotify step, not on
+        // the audio picker at the top of the page.
+        requestAnimationFrame(() => {
+          const step = this.root && this.root.querySelector('[data-r="spotifyStep"]');
+          if (step) step.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        });
+      },
       spotifyLabel: s.spotify ? 'Spotify connected' : 'Spotify not connected',
       spotifyHint: s.spotify
         ? 'Track, artist, album colours and timed lyrics are coming from Spotify.'
@@ -900,7 +974,7 @@ class Roomtone {
     const r = this.root;
     this.n = {};
     if (!r) return;
-    ['edge', 'bar', 'word', 'bloom', 'stage', 'cover', 'ring', 'prog', 'tcur', 'tdur', 'chrome', 'lyrLayer', 'nolyr', 'barsRow', 'chip', 'launch', 'pbtn', 'title', 'artist', 'devlabel',
+    ['edge', 'bar', 'word', 'bloom', 'stage', 'cover', 'ring', 'prog', 'tcur', 'tdur', 'chrome', 'lyrLayer', 'nolyr', 'barsRow', 'chip', 'launch', 'pbtn', 'coverWrap', 'coverGlow', 'title', 'artist', 'devlabel',
       'editLayer', 'editBg', 'editStage', 'editStack', 'erow', 'echo', 'livetag',
       'playerFrame', 'panel', 'slider', 'sliderVal', 'csrc', 'kbhint',
       'editArt', 'editArtTex', 'editScan', 'editMeta',
@@ -1052,6 +1126,15 @@ class Roomtone {
       // Escape is the way out of fullscreen before it is anything else — a
       // borderless window with no title bar and no exit is a trap.
       if (k === 'escape' && this.fullscreen) { this.setFullscreen(false); return; }
+      // Enter starts from the setup screen, unless it is confirming a field.
+      if (k === 'enter' && s.screen === 'onboard') {
+        const tag = (e.target && e.target.tagName) || '';
+        if (tag === 'INPUT') { if (e.target.dataset.r === 'cid') this.saveClientId(); return; }
+        if (tag === 'BUTTON') return;
+        e.preventDefault();
+        this.renderVals().launch();
+        return;
+      }
       if (k === 'escape') {
         // Through setKaraoke so the typography preset comes back, and through
         // closeOverlay so each panel gets its exit rather than vanishing.
@@ -1126,7 +1209,13 @@ class Roomtone {
     // gap from the frame that was actually drawn lets it compound, which is how
     // an earlier version of this ran a 144 cap at 181. So the deadline advances
     // on a fixed grid instead, and being a little early just shifts the phase.
-    const cap = FPS_STEPS[Math.round(this.state.cfg.fpsCap) || 0] || 0;
+    // A minimised window draws nothing anyone can see.
+    if (document.hidden) return;
+
+    // Nothing playing and nobody at the controls: thirty frames a second is
+    // plenty for a slow idle drift, and it halves what the GPU is asked for.
+    let cap = FPS_STEPS[Math.round(this.state.cfg.fpsCap) || 0] || 0;
+    if (this.idle && (!cap || cap > 30)) cap = 30;
     if (cap && cap !== Infinity) {
       if (now < this.nextFrameAt - 1) return;
       this.nextFrameAt = Math.max(now, (this.nextFrameAt || now) + 1000 / cap);
@@ -1200,7 +1289,25 @@ class Roomtone {
     }
     for (const [id, legacy] of Object.entries(LEGACY)) PW[legacy] = PW[id] || 0;
     const P = s.preset, hasLyr = !!t.lyr;
-    const acc = this.accent();
+    const acc = t.a;
+
+    // Decided up here rather than at the shader pass: with shaders on, the CSS
+    // layers are dark, and every style written to them is work nobody sees.
+    const shaded = this.useShaders && this.gl.ok;
+
+    // Layout is measured after a redraw or a resize, and otherwise twice a
+    // second — not once a frame, in the middle of a run of style writes, which
+    // made the browser lay the whole page out again each time.
+    const measure = this._layoutDirty || now - (this._layoutAt || 0) > 500;
+    if (measure) this._layoutAt = now;
+
+    // Silence, with no hand on the mouse and no panel open.
+    const quiet = !playing && !(this.audio.rms > 1e-4);
+    if (!quiet) this._quietAt = 0;
+    else if (!this._quietAt) this._quietAt = now;
+    this.idle = quiet && now - this._quietAt > 5000 && now > this.chromeUntil + 600
+      && !s.settings && !s.lyrics && !s.tray && !s.credits && !s.debug;
+    const chromeOn = now < this.chromeUntil + 600 || this._dockDrawn !== this.drawN;
 
     // Overlays on their way out. They are still mounted only because
     // closeOverlay() is holding them there for exactly this.
@@ -1233,18 +1340,21 @@ class Roomtone {
     });
 
     const glowMul = (PW.glow + PW.bloom * 0.4 + PW.type * 0.28 + PW.edit * 0.1 + PW.spectrum * 0.4 + PW.flow * 0.2) * C.reach;
-    this.each('edge', (e, i) => {
+    if (!shaded) this.each('edge', (e, i) => {
       e.style.opacity = String((0.10 + bass * 0.72) * glowMul * k);
       e.style.transform = (i % 2 ? 'scaleX' : 'scaleY') + '(' + (0.5 + bass * 0.65) + ')';
     });
 
     const bloomMul = (PW.bloom * 0.62 + PW.type * (hasLyr ? 0.09 : 0.62) + PW.glow * 0.13 + PW.edit * 0.04 + PW.spectrum * 0.14 + PW.flow * 0.24) * C.bloom;
-    this.each('bloom', (e) => { e.style.opacity = String(bloomMul * (0.45 + energy * 0.85) * k); });
+    if (!shaded) this.each('bloom', (e) => { e.style.opacity = String(bloomMul * (0.45 + energy * 0.85) * k); });
 
-    this.each('barsRow', (e) => { e.style.opacity = String(PW.glow * 0.9 + PW.bloom * 0.3 + PW.type * 0.1); });
+    const barsOn = PW.glow * 0.9 + PW.bloom * 0.3 + PW.type * 0.1;
+    this.each('barsRow', (e) => { e.style.opacity = String(barsOn); });
     const N = (this.n.bar || []).length || 1;
     const barMax = P === 'edge-glow' ? 96 : 52;
-    this.each('bar', (e, i) => {
+    // Fifty-six heights a frame is fifty-six layouts; skip them while the row
+    // is faded out, which is every preset but three.
+    if (barsOn > 0.01) this.each('bar', (e, i) => {
       const n = i / (N - 1 || 1);
       const band = n < 0.32 ? bass : n < 0.7 ? mid : high;
       const w = 0.42 + 0.58 * Math.abs(Math.sin(i * 0.72 + beat * 1.3 + n * 4.2));
@@ -1253,15 +1363,16 @@ class Roomtone {
     });
 
     this.each('ring', (e) => { e.style.transform = 'rotate(' + (beat * 14) + 'deg)'; });
-    this.each('cover', (e) => {
-      e.style.transform = 'scale(' + (1 + kickNow * 0.03 * k) + ')';
-      e.style.boxShadow =
-        '0 40px 120px rgba(0,0,0,0.7), 0 0 ' + (30 + bass * 130 * k) + 'px ' + acc;
-    });
+    // The glow used to be a box-shadow whose radius followed the bass, which
+    // repaints an area far bigger than the cover on every frame. It is its own
+    // layer now, and only its opacity moves — the compositor does that alone.
+    const coverScale = 'scale(' + (1 + kickNow * 0.03 * k) + ')';
+    this.each('coverWrap', (e) => { e.style.transform = coverScale; });
+    this.each('coverGlow', (e) => { e.style.opacity = String(Math.min(1, 0.16 + bass * 0.7 * k)); });
 
     const shrink = Math.max(PW.type * (hasLyr ? 1 : 0), PW.edit, PW.spectrum, PW.flow * 0.7);
     const stEl = (this.n.stage || [])[0], wrEl = (this.n.stageWrap || [])[0];
-    if (stEl && wrEl) {
+    if (measure && stEl && wrEl) {
       const band = wrEl.clientHeight - 118 - (this._padB || 158);
       const nat = stEl.scrollHeight || 1;
       this._fitS = Math.max(0.4, Math.min(1, band / nat));
@@ -1277,7 +1388,12 @@ class Roomtone {
     });
 
     this.each('prog', (e) => { e.style.width = (t.dur ? (this.pos / t.dur) * 100 : 0) + '%'; });
-    this.each('tcur', (e) => { e.textContent = this.mmss(this.pos); });
+    const clock = this.mmss(this.pos);
+    if (clock !== this._clock || this._clockDrawn !== this.drawN) {
+      this._clock = clock;
+      this._clockDrawn = this.drawN;
+      this.each('tcur', (e) => { e.textContent = clock; });
+    }
 
     // Kinetic type. Words land one at a time and the ones before them stay,
     // shrinking and blurring back — so you read the phrase, not just the word.
@@ -1307,7 +1423,7 @@ class Roomtone {
         this.each('lyrLayer', (e) => {
           e.style.opacity = String((0.14 + gapFade * 0.86) * PW.type);
         });
-        this.each('bloom', (e) => {
+        if (!shaded) this.each('bloom', (e) => {
           const gapBloom = (0.09 + (1 - gapFade) * 0.5) * PW.type + bloomMul * (1 - PW.type);
           e.style.opacity = String(gapBloom * (0.45 + energy * 0.85) * k);
         });
@@ -1343,18 +1459,29 @@ class Roomtone {
       let ci = 0;
       t.lyr.forEach((line, i) => { if (line.t <= lp) ci = i; });
 
-      (this.n.lyrLine || []).forEach((el, i) => {
-        const txt = el.querySelector('[data-r="lyrText"]');
-        const tm = el.querySelector('[data-r="lyrTime"]');
-        const isCur = i === ci, past = i < ci;
-        if (txt) {
-          txt.style.color = isCur ? '#fff' : past ? '#8f8a99' : '#9d98a6';
-          txt.style.fontWeight = isCur ? '700' : '500';
-          txt.style.textShadow = isCur ? `0 0 ${20 + bass * 60}px ${acc}` : 'none';
-        }
-        if (tm) tm.style.color = isCur ? acc : '#77727f';
-        el.style.background = isCur ? 'rgba(255,255,255,0.05)' : 'transparent';
-      });
+      // Every line used to be found and restyled on every frame — a hundred
+      // lookups and several hundred style writes to say what had not changed.
+      // Restyle when the current line moves; per frame, only its glow.
+      const lines = this.n.lyrLine || [];
+      if (this._sheetCi !== ci || this._sheetDrawn !== this.drawN || this._sheetAcc !== acc) {
+        this._sheetCi = ci;
+        this._sheetDrawn = this.drawN;
+        this._sheetAcc = acc;
+        lines.forEach((el, i) => {
+          const txt = el._txt || (el._txt = el.querySelector('[data-r="lyrText"]'));
+          const tm = el._tm || (el._tm = el.querySelector('[data-r="lyrTime"]'));
+          const isCur = i === ci, past = i < ci;
+          if (txt) {
+            txt.style.color = isCur ? '#fff' : past ? '#8f8a99' : '#9d98a6';
+            txt.style.fontWeight = isCur ? '700' : '500';
+            if (!isCur) txt.style.textShadow = 'none';
+          }
+          if (tm) tm.style.color = isCur ? acc : '#77727f';
+          el.style.background = isCur ? 'rgba(255,255,255,0.05)' : 'transparent';
+        });
+      }
+      const lit = lines[ci] && lines[ci]._txt;
+      if (lit) lit.style.textShadow = `0 0 ${20 + bass * 60}px ${acc}`;
 
       const scroller = (this.n.lyrScroll || [])[0];
       const current = (this.n.lyrLine || [])[ci];
@@ -1402,10 +1529,11 @@ class Roomtone {
     }
 
     this.each('specLayer', (e) => { e.style.opacity = String(PW.spectrum); });
-    if (PW.spectrum > 0.02) {
+    if (!shaded && PW.spectrum > 0.02) {
       const SB = this.n.sbar || [], SN = SB.length || 1;
       const ring = (this.n.specRing || [])[0];
-      const R = ring ? ring.getBoundingClientRect().width * 0.23 : 160;
+      if (measure || !this._ringR) this._ringR = ring ? ring.getBoundingClientRect().width * 0.23 : 160;
+      const R = this._ringR;
       SB.forEach((e, i) => {
         const n = i / SN;
         const band = n < 0.32 ? bass : n < 0.7 ? mid : high;
@@ -1421,10 +1549,14 @@ class Roomtone {
     }
 
     this.each('flowCanvas', (e) => { e.style.opacity = String(PW.flow); });
-    if (PW.flow > 0.02) this.flowStep(dt, bass, high, energy, kickNow, acc, k);
+    if (!shaded && PW.flow > 0.02) this.flowStep(dt, bass, high, energy, kickNow, acc, k);
 
-    if (this._thumbAcc !== acc && (this.n.pfx || []).length) {
+    // Keyed on the redraw as well as the colour: a redraw builds new, blank
+    // tiles, and with only the colour to go on they stayed blank until the
+    // next track happened to change it.
+    if ((this._thumbAcc !== acc || this._thumbDrawn !== this.drawN) && (this.n.pfx || []).length) {
       this._thumbAcc = acc;
+      this._thumbDrawn = this.drawN;
       const TH = {
         glow: 'radial-gradient(120% 90% at 50% 118%,' + acc + ', transparent 60%),radial-gradient(120% 90% at 50% -18%,' + acc + ', transparent 60%)',
         bloom: 'radial-gradient(58% 58% at 42% 44%,' + acc + ', transparent 70%),radial-gradient(46% 46% at 68% 64%, rgba(255,255,255,0.5), transparent 72%)',
@@ -1434,22 +1566,26 @@ class Roomtone {
         flow: 'repeating-linear-gradient(58deg,' + acc + ' 0 1px, transparent 1px 7px)',
       };
       this.each('pfx', (e) => {
-        const v = LEGACY[e.getAttribute('data-v')] || 'glow';
-        e.style.background = TH[v] || '';
+        const id = e.getAttribute('data-v');
+        const v = LEGACY[id] || (THUMBS[id] ? id : 'glow');
+        e.style.background = THUMBS[v] ? THUMBS[v](acc) : (TH[v] || '');
         e.style.inset = v === 'spectrum' ? '20%' : v === 'type' ? '28% 24%' : '0';
         e.style.borderRadius = v === 'spectrum' ? '50%' : '0';
         e.style.filter = v === 'edit' ? 'blur(3px)' : v === 'flow' ? 'blur(0.5px)' : 'none';
       });
     }
-    this.each('pfx', (e) => {
+    // The dock is invisible most of the time. Its thumbnails only need their
+    // pulse while somebody can see them.
+    if (chromeOn) this._dockDrawn = this.drawN;
+    if (chromeOn) this.each('pfx', (e) => {
       const w = PW[e.getAttribute('data-v')] || 0;
 
       e.style.opacity = String(Math.min(1, 0.3 + w * 0.36 + energy * 0.3));
     });
-    this.each('pthumb', (e) => {
+    if (chromeOn) this.each('pthumb', (e) => {
       const on = e.getAttribute('data-v') === P;
       e.style.borderColor = on ? acc : 'rgba(255,255,255,0.12)';
-      e.style.boxShadow = on ? '0 0 0 1px ' + acc + ', 0 0 ' + (10 + bass * 26) + 'px ' + acc : 'none';
+      e.style.boxShadow = on ? '0 0 0 1px ' + acc + ', 0 0 18px ' + acc : 'none';
     });
     this.each('plabel', (e) => { e.style.color = e.getAttribute('data-v') === P ? '#fff' : '#9d98a6'; });
 
@@ -1499,7 +1635,7 @@ class Roomtone {
     });
 
     const dock = (this.n.chrome || []).find((e) => e.getAttribute('data-r2') === 'dock');
-    if (dock) {
+    if (dock && measure) {
       const rct = dock.getBoundingClientRect();
       const padB = Math.ceil(window.innerHeight - rct.top) + 24;
       if (padB > 0 && padB !== this._padB) {
@@ -1507,6 +1643,8 @@ class Roomtone {
         this.each('stageWrap', (e) => { e.style.paddingBottom = padB + 'px'; });
       }
     }
+
+    if (measure) this._layoutDirty = false;
 
     // Karaoke draws over everything, shader included — the words are the point
     // and the visualizer is the stage they stand on. The centre panel steps out
@@ -1521,14 +1659,19 @@ class Roomtone {
     });
 
     // ---- the shader pass ------------------------------------------------
-    const shaded = this.useShaders && this.gl.ok;
     if (shaded) {
       // The CSS layers stay in the DOM but go dark. Flipping back with G is
       // instant, which is what makes an honest side-by-side possible.
       ['edge', 'bloom', 'specLayer', 'flowCanvas'].forEach((k) => {
         this.each(k, (e) => { e.style.opacity = '0'; });
       });
-      this.renderShaders(PW, k, acc, now);
+      // The tray, the lyric sheet and the credits are opaque and full-window.
+      // Once one has finished fading in there is nothing behind it to see, so
+      // the shader pass — the most expensive thing this app does — can stop.
+      const covered = s.tray || s.lyrics || s.credits;
+      if (!covered) this._coveredAt = 0;
+      else if (!this._coveredAt) this._coveredAt = now;
+      if (!covered || now - this._coveredAt < 400) this.renderShaders(PW, k, acc, now);
     }
     this.canvasVisible(shaded);
 
@@ -1572,7 +1715,7 @@ class Roomtone {
    * Photosensitivity guard.
    *
    * Applied to the *uniforms*, not inside any one shader. That placement is the
-   * whole design: it covers all eleven presets and every shader a user writes
+   * whole design: it covers every built-in preset and every shader a user writes
    * later, without asking a shader author to remember anything. A guard that
    * each preset had to opt into would protect the presets that needed it least.
    *
@@ -2129,9 +2272,12 @@ class Roomtone {
     const spoken = (lines || []).filter((l) => l.text);
     this._karLines = spoken.map((l, i) => {
       const words = l.words && l.words.length ? l.words : [{ t: l.t, w: l.text }];
-      const end = i + 1 < spoken.length
-        ? spoken[i + 1].t
-        : l.t + Math.max(2.5, words.length * 0.42);
+      const next = i + 1 < spoken.length ? spoken[i + 1].t : Infinity;
+      // The parser says when the singing of a line stops. Without that the
+      // last word wiped slowly across however long the band played on.
+      const end = l.end > l.t
+        ? Math.min(l.end, next)
+        : (next < Infinity ? next : l.t + Math.max(2.5, words.length * 0.42));
       return { t: l.t, text: l.text, words, end };
     });
     return this._karLines;
@@ -2226,6 +2372,11 @@ class Roomtone {
         // Three stops: sung is white, the moving edge is the cover colour, the
         // rest is a ghost. The accent riding the edge is what reads as a wipe
         // rather than as two blocks of text.
+        const phase = p <= 0 ? 0 : p >= 1 ? 2 : 1;
+        if (phase !== 1 && span._phase === phase && span._acc === acc) continue;
+        span._phase = phase;
+        span._acc = acc;
+
         const b = p * 100;
         const a = Math.max(0, b - 7);
         span.style.backgroundImage =
@@ -2489,6 +2640,11 @@ async function refreshInfo() {
   } catch (e) { /* keep the default */ }
 
   // The last edit is never lost to the debounce: leaving writes immediately.
+  // A minimised window does not need sixty audio frames a second sent to it.
+  document.addEventListener('visibilitychange', () => {
+    invoke('audio_emit', { on: !document.hidden }).catch(() => {});
+  });
+  window.addEventListener('resize', () => { app._layoutDirty = true; });
   window.addEventListener('beforeunload', () => app.saveNow());
   window.addEventListener('blur', () => app.saveNow());
 

@@ -16,6 +16,7 @@ precision highp float;
 
 // @name      Liquid Metal
 // @author    ROOMTONE
+// @group     Ambient
 // @param     blobs    2.00 .. 8.00 = 5.00  "Blob count"
 // @param     surface  0.20 .. 2.00 = 1.00  "Surface sharpness"
 // @param     flow     0.00 .. 2.00 = 0.80  "Flow speed"

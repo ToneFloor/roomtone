@@ -16,6 +16,7 @@ precision highp float;
 
 // @name      Edge Glow
 // @author    ROOMTONE
+// @group     Club
 // @param     reach    0.30 .. 2.00 = 1.00  "Edge reach"
 // @param     warmth   0.00 .. 1.00 = 0.35  "Bloom warmth"
 // @feedback  true

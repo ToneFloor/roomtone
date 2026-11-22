@@ -16,6 +16,7 @@ precision highp float;
 
 // @name      Warp Tunnel
 // @author    ROOMTONE
+// @group     Club
 // @param     speed    0.10 .. 3.00 = 1.00  "Travel speed"
 // @param     twist    0.00 .. 2.00 = 0.60  "Twist"
 // @param     rings    4.00 .. 40.00 = 16.0 "Ring density"

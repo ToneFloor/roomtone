@@ -276,15 +276,29 @@ fn watch_for_silence() {
     });
 }
 
+/// Cleared while the window is minimised, so the bridge is not crossed sixty
+/// times a second for frames nothing will draw.
+static EMITTING: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(true);
+
+pub fn set_emitting(on: bool) {
+    EMITTING.store(on, std::sync::atomic::Ordering::Relaxed);
+}
+
 /// One small event per frame at 60 Hz. Raw FFT frames are deliberately never
 /// sent across the bridge — the serialisation cost shows up as jitter.
 fn spawn_emitter(app: AppHandle) {
     tauri::async_runtime::spawn(async move {
         let mut ticker = tokio::time::interval(Duration::from_micros(16_667));
         ticker.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+        let mut silent_ticks: u32 = 0;
 
         loop {
             ticker.tick().await;
+
+            // Nobody is looking: the window is minimised.
+            if !EMITTING.load(std::sync::atomic::Ordering::Relaxed) {
+                continue;
+            }
 
             // Read the levels through the shared state rather than capturing
             // them once: switching source replaces them, and an emitter holding
@@ -298,6 +312,18 @@ fn spawn_emitter(app: AppHandle) {
             };
 
             let s = levels.snapshot();
+
+            // Silence is the same frame over and over. Send it four times a
+            // second rather than sixty, which is enough for the window to know
+            // the analyser is alive and costs a fifteenth as much.
+            if s.rms < 1e-5 && s.kick < 1e-5 && s.bass < 1e-5 && s.mid < 1e-5 && s.high < 1e-5 {
+                silent_ticks = silent_ticks.saturating_add(1);
+                if silent_ticks > 30 && silent_ticks % 15 != 0 {
+                    continue;
+                }
+            } else {
+                silent_ticks = 0;
+            }
 
             let spectrum = levels
                 .spectrum

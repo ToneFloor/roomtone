@@ -16,6 +16,7 @@ precision highp float;
 
 // @name      Kinetic Type
 // @author    ROOMTONE
+// @group     Lyrics
 // @param     pool     0.20 .. 2.00 = 1.00  "Light pool"
 // @param     lift     0.00 .. 1.50 = 0.60  "Word lift"
 // @feedback  true

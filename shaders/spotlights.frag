@@ -16,6 +16,7 @@ precision highp float;
 
 // @name      Spotlights
 // @author    ROOMTONE
+// @group     Club
 // @param     beams    2.00 .. 8.00 = 4.00  "Beam count"
 // @param     sweep    0.00 .. 2.00 = 0.80  "Sweep speed"
 // @param     haze     0.20 .. 2.00 = 1.00  "Haze density"

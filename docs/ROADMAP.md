@@ -30,6 +30,20 @@ as done until it has been run and checked on a real machine.
   key map listed in the app
 - Twelve presets, including Spotlights — sweeping searchlight beams with
   volumetric haze
+- Sixteen presets in three dock groups (Club, Ambient, Lyrics): Synth Grid,
+  Ridgeline, Ink and Lava Lamp added, each with its own thumbnail; `@group` in
+  the shader header decides where a preset sits
+- Lyric timing: real word times from enhanced LRC when a file has them, a
+  syllable-rate cap so a line's words stop when the singing does rather than
+  stretching across an instrumental gap, pauses at punctuation, and sensible
+  splitting for Chinese, Japanese, Korean, Cyrillic and Greek
+- Setup fits one screen: START stays in reach (or press Enter), the Spotify
+  walkthrough folds away until asked for, and choices no longer scroll the page
+  back to the top
+- Lighter on the machine: no shader pass behind an opaque panel, no CSS-layer
+  work while shaders are on, layout measured twice a second instead of every
+  frame, 30 fps when nothing is playing, and no audio frames sent to a
+  minimised window
 - Motion polish: every panel animates out as well as in, and the transitions
   that the stylesheet had always declared actually run
 - The interface reports its own uncaught errors into the log, and the log

@@ -16,6 +16,7 @@ precision highp float;
 
 // @name      Art Bloom
 // @author    ROOMTONE
+// @group     Ambient
 // @param     bloom    0.20 .. 2.00 = 1.00  "Bloom amount"
 // @param     softness 0.30 .. 3.00 = 1.20  "Blur radius"
 // @param     drift    0.00 .. 1.00 = 0.40  "Drift speed"

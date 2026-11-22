@@ -3398,7 +3398,7 @@ dependencies = [
 
 [[package]]
 name = "roomtone"
-version = "0.3.1"
+version = "0.4.0"
 dependencies = [
  "aubio-rs",
  "color-thief",

@@ -16,6 +16,7 @@ precision highp float;
 
 // @name      Flow Field
 // @author    ROOMTONE
+// @group     Ambient
 // @param     speed    0.10 .. 3.00 = 1.00  "Flow speed"
 // @param     scale    0.50 .. 4.00 = 1.60  "Field scale"
 // @param     decay    0.80 .. 0.99 = 0.94  "Trail persistence"
