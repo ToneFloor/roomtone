@@ -59,8 +59,9 @@ async fn spotify_disconnect() -> Status {
 /// anything" command reachable from the front end is a hole worth not having.
 #[tauri::command]
 fn open_external(url: String) -> Result<(), String> {
-    const ALLOWED: [&str; 3] = [
+    const ALLOWED: [&str; 4] = [
         "https://github.com/",
+        "https://tonefloor.github.io/roomtone/",
         "https://developer.spotify.com/",
         "https://lrclib.net/",
     ];

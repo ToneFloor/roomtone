@@ -70,7 +70,7 @@ listens to your speakers and draws.
 
 Track names, album colours and word-by-word lyrics need Spotify, which is step
 03 on that screen and can be added later from Settings. It takes about two
-minutes and works on a free account — see [Setting up Spotify](#setting-up-spotify).
+minutes — follow the **[step-by-step Spotify guide](https://tonefloor.github.io/roomtone/spotify/)**.
 
 ## What it does
 
@@ -101,25 +101,34 @@ minutes and works on a free account — see [Setting up Spotify](#setting-up-spo
   needs no account at all. Track metadata and timed lyrics work on a free
   account; playback control (play, pause, skip from inside ROOMTONE) is a
   Premium-only API.
-- **Your own Spotify Client ID**, for that optional half — see below. Two
-  minutes, no cost. ROOMTONE asks for it on screen and links you to the page.
+- **A Spotify Client ID from a Premium account**, for that optional half — see
+  below. Yours if you have Premium; otherwise a friend's, with you added to
+  their app.
 - To build it: [Rust](https://rustup.rs) 1.88 or newer,
   [Node.js](https://nodejs.org), and the WebView2 runtime (already present on
   Windows 11 and on up-to-date Windows 10).
 
 ## Setting up Spotify
 
+**[Step-by-step guide, with troubleshooting →](https://tonefloor.github.io/roomtone/spotify/)**
+
 ROOMTONE does not ship with a Client ID, and this is deliberate rather than an
-omission. Spotify applications start in *development mode*, which allows at most
-25 hand-added users.
+omission. Spotify applications start in *development mode*, and since March
+2026 a development-mode app only works while **the account that owns it has
+Premium**, and only for **up to five** hand-added users. A shared ID could not
+serve everyone anyway.
 
 1. Open the [Spotify developer dashboard](https://developer.spotify.com/dashboard)
-   and create an app.
+   with a **Premium** account and create an app.
 2. Add the redirect URI `http://127.0.0.1:8888/callback`.
 3. Tick **Web API** under the SDKs question, and save.
-4. Open the app → **Settings** → **User Management**, and add your own account.
-5. Copy the Client ID and paste it into ROOMTONE on first run — the first
-   screen asks for it, and has the redirect URI ready to copy.
+4. Open the app → **Settings** → **User Management**, and add every account that
+   will sign in — yours, and up to four friends.
+5. Copy the Client ID and paste it into ROOMTONE (setup screen, or
+   **Settings → Spotify → Set up**).
+
+On Spotify Free? Ask a friend with Premium to add your Spotify email to their
+app's User Management and send you its Client ID. You sign in as yourself.
 
 ## Building
 

@@ -47,6 +47,9 @@ const PROPS = { accent: '#7c5cff', intensity: 1 };
  */
 const REPORT_LAG = 0.13;
 
+/** Step-by-step Spotify setup, with screenshots. Served from docs/ on GitHub Pages. */
+const SPOTIFY_GUIDE = 'https://tonefloor.github.io/roomtone/spotify/';
+
 /** How each live-adjustable value reads on screen. */
 const pct = (v) => Math.round(v * 100) + '%';
 /**
@@ -578,6 +581,11 @@ class Roomtone {
       cidInput: (e) => { this.cidDraft = e.target.value; },
       redirectUri: 'http://127.0.0.1:8888/callback',
       openDashboard: () => invoke('open_external', { url: 'https://developer.spotify.com/dashboard' }).catch(() => {}),
+      openGuide: () => invoke('open_external', { url: SPOTIFY_GUIDE }).catch(() => {}),
+      // A saved Client ID that Spotify refuses (its owner has no Premium, or
+      // you are not on its User Management list) used to be a dead end: the
+      // paste box only showed while no ID was set. Bring it back.
+      changeClientId: () => { this.clientIdSet = false; this.authError = ''; this.draw(); },
       copyRedirect: () => {
         navigator.clipboard.writeText('http://127.0.0.1:8888/callback')
           .then(() => this.say('REDIRECT URI COPIED'))
@@ -655,7 +663,9 @@ class Roomtone {
         { v: 'fixed', label: 'FIXED', on: () => this.setCfg('colorSrc', 'fixed') },
       ],
       openSettings: () => this.setState({ settings: true }),
-      backToSetup: () => this.setState({ settings: false, screen: 'setup' }),
+      // 'onboard' is the setup screen. This said 'setup', which no view
+      // matches, so the Settings row opened a blank window.
+      backToSetup: () => this.setState({ settings: false, screen: 'onboard' }),
       spotifyLabel: s.spotify ? 'Spotify connected' : 'Spotify not connected',
       spotifyHint: s.spotify
         ? 'Track, artist, album colours and timed lyrics are coming from Spotify.'

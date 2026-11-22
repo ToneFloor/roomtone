@@ -173,7 +173,10 @@ pub async fn persist_if_changed(client: &AuthCodePkceSpotify) {
 }
 
 async fn describe(client: &AuthCodePkceSpotify) -> Result<(Option<String>, Option<String>), String> {
-    let me = client.me().await.map_err(|e| e.to_string())?;
+    let me = match client.me().await {
+        Ok(me) => me,
+        Err(e) => return Err(explain(e).await),
+    };
 
     // Spotify is retiring the `product` field, and it was only ever populated
     // with the `user-read-private` scope, which ROOMTONE does not request. So
@@ -183,6 +186,74 @@ async fn describe(client: &AuthCodePkceSpotify) -> Result<(Option<String>, Optio
     let product = me.product.map(|p| format!("{p:?}").to_lowercase());
 
     Ok((me.display_name, product))
+}
+
+/// Turn an rspotify failure into something a person can act on.
+///
+/// rspotify's own message for a rejected request is "http error: status code
+/// 403 Forbidden", which is true and useless: Spotify sends the reason in the
+/// body, and the two common 403s need opposite fixes. Since March 2026 a
+/// development-mode app only works while the account that *owns* it has
+/// Premium, and only for the (at most five) accounts listed under User
+/// Management. A friend on a free account who registers their own app hits the
+/// first; one who borrows someone else's Client ID without being added hits the
+/// second. Both used to arrive as the same line.
+async fn explain(e: rspotify::ClientError) -> String {
+    use rspotify::http::HttpError;
+
+    let response = match e {
+        rspotify::ClientError::Http(http) => match *http {
+            HttpError::StatusCode(response) => response,
+            other => return other.to_string(),
+        },
+        other => return other.to_string(),
+    };
+
+    let status = response.status().as_u16();
+    let body = response.text().await.unwrap_or_default();
+    let message = spotify_message(&body);
+    crate::log::event(&format!("spotify rejected the request: {status} {message}"));
+
+    let lower = message.to_lowercase();
+    if lower.contains("premium") && lower.contains("owner") {
+        return "Spotify refused this Client ID because the account that created the app \
+                does not have Premium. Since March 2026 Spotify only runs developer apps \
+                whose owner pays for Premium. Either use a Premium account to create the \
+                app, or ask a friend with Premium to add you under User Management in \
+                their app and paste their Client ID instead."
+            .into();
+    }
+    if status == 403 {
+        return "Spotify refused your account for this Client ID. Open the app in the Spotify \
+                developer dashboard, go to Settings \u{203a} User Management, and add the \
+                name and email of the Spotify account you are signing in with (at most five \
+                people per app), then connect again."
+            .into();
+    }
+    if status == 401 {
+        return "your Spotify session expired \u{2014} please reconnect".into();
+    }
+    if message.is_empty() {
+        format!("Spotify returned {status}")
+    } else {
+        format!("Spotify returned {status}: {message}")
+    }
+}
+
+/// The human part of a Spotify error body. The Web API sends
+/// `{"error":{"status":403,"message":"..."}}`; the accounts service sends
+/// `{"error":"invalid_grant","error_description":"..."}`.
+fn spotify_message(body: &str) -> String {
+    let Ok(json) = serde_json::from_str::<serde_json::Value>(body) else {
+        return body.trim().chars().take(200).collect();
+    };
+    let error = &json["error"];
+    error["message"]
+        .as_str()
+        .or_else(|| json["error_description"].as_str())
+        .or_else(|| error.as_str())
+        .unwrap_or_default()
+        .to_string()
 }
 
 /// Called at startup. Restores a stored session without any user interaction.
@@ -269,10 +340,12 @@ pub async fn restore() -> Status {
         }
         Err(e) => {
             crate::log::event(&format!("restore: me() FAILED: {e}"));
+            // `explain` already says "expired, please reconnect" for a 401, and
+            // for a 403 it says which of Spotify's rules refused the account,
+            // which "expired" would hide.
             let _ = tokens::clear();
             remember(None);
-            status.error = Some("your saved Spotify session expired — please reconnect".into());
-            let _ = e;
+            status.error = Some(e);
         }
     }
     status
@@ -333,6 +406,7 @@ pub async fn connect() -> Status {
     crate::log::event("connect: got authorisation code");
 
     if let Err(e) = client.request_token(&code).await {
+        let e = explain(e).await;
         crate::log::event(&format!("connect: token exchange FAILED: {e}"));
         status.error = Some(format!("token exchange failed: {e}"));
         return status;

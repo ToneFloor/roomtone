@@ -123,9 +123,10 @@ fn handle(mut stream: TcpStream) -> Result<Option<Result<String, String>>, Strin
         "You declined the authorisation request.".to_string()
     } else {
         format!(
-            "Spotify said: {reason}. If this is a 403, add your own Spotify account under \
-             User Management in the developer dashboard — apps in development mode only \
-             allow users you add by hand."
+            "Spotify said: {reason}. Two things to check in the developer dashboard: the \
+             account that created the app needs Spotify Premium, and the account you are \
+             signing in with must be listed under Settings &rsaquo; User Management. \
+             Step-by-step guide: https://tonefloor.github.io/roomtone/spotify/"
         )
     };
     respond(&mut stream, 400, &page("Not connected", &hint, false));

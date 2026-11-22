@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ROOMTONE · Spotify setup</title>
+<meta name="description" content="Connect Spotify to ROOMTONE for track names, album colours and word-by-word lyrics. Two minutes, step by step.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Space+Grotesk:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#08040f; --panel:rgba(255,255,255,0.025); --line:rgba(255,255,255,0.10);
+    --text:#f4f2f7; --dim:#a5a0ad; --mute:#8f8a99; --a:#7c5cff; --ok:#2de296; --bad:#ff6b7f;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:'Space Grotesk',Segoe UI,Helvetica,Arial,sans-serif;line-height:1.65;-webkit-font-smoothing:antialiased}
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;background:radial-gradient(120% 70% at 50% -10%,rgba(124,92,255,0.20),transparent 60%),radial-gradient(90% 60% at 50% 120%,rgba(124,92,255,0.12),transparent 65%)}
+  main{position:relative;max-width:760px;margin:0 auto;padding:64px 20px 96px}
+  .mono{font-family:'Space Mono',monospace}
+  .eyebrow{font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.34em;text-transform:uppercase;color:var(--a);display:flex;align-items:center;gap:12px}
+  .eyebrow .dot{width:8px;height:8px;border-radius:50%;background:var(--a);box-shadow:0 0 24px 4px var(--a)}
+  h1{font-family:'Anton',Impact,sans-serif;font-weight:400;font-size:clamp(44px,9vw,76px);line-height:.98;letter-spacing:.01em;text-transform:uppercase;margin:22px 0 18px}
+  h2{font-size:22px;font-weight:600;margin:0 0 6px}
+  h3{font-size:15px;font-weight:600;margin:0}
+  p{margin:0 0 14px;color:var(--dim)}
+  b,strong{color:var(--text);font-weight:500}
+  a{color:#b9a8ff;text-decoration:none;border-bottom:1px solid rgba(185,168,255,.35)}
+  a:hover{color:#fff;border-color:#fff}
+  .lede{font-size:17px;max-width:620px}
+  .card{border:1px solid var(--line);background:var(--panel);border-radius:12px;padding:22px}
+  .note{border-left:2px solid var(--a);padding:2px 0 2px 16px;margin:28px 0;color:var(--dim);font-size:14px}
+  section{margin-top:56px}
+  .tag{display:inline-block;font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.14em;padding:3px 8px;border-radius:4px;border:1px solid rgba(45,226,150,.4);color:var(--ok);text-transform:uppercase}
+
+  /* path picker */
+  .paths{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:28px}
+  .path{all:unset;cursor:pointer;display:flex;flex-direction:column;gap:8px;padding:18px;border:1px solid var(--line);background:var(--panel);border-radius:12px;transition:border-color .15s,background .15s}
+  .path:hover{border-color:rgba(255,255,255,.26)}
+  .path[aria-pressed="true"]{border-color:var(--a);background:rgba(124,92,255,.10);box-shadow:0 0 0 1px var(--a) inset}
+  .path .k{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.2em;color:var(--a)}
+  .path .t{font-size:16px;font-weight:600}
+  .path .d{font-size:13px;color:var(--mute);line-height:1.5}
+  .path:focus-visible{outline:2px solid var(--a);outline-offset:3px}
+
+  /* steps */
+  ol.steps{list-style:none;margin:20px 0 0;padding:0;display:flex;flex-direction:column;gap:10px;counter-reset:s}
+  ol.steps>li{counter-increment:s;display:grid;grid-template-columns:40px 1fr;gap:4px 14px;padding:18px;border:1px solid var(--line);background:var(--panel);border-radius:12px}
+  ol.steps>li::before{content:counter(s,decimal-leading-zero);font-family:'Space Mono',monospace;font-size:12px;letter-spacing:.1em;color:var(--a);padding-top:2px}
+  ol.steps>li>div{min-width:0}
+  ol.steps p{margin:6px 0 0;font-size:14px}
+  .who{font-family:'Space Mono',monospace;font-size:9.5px;letter-spacing:.16em;color:var(--mute);text-transform:uppercase;margin-left:8px}
+
+  .copy{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px}
+  code{font-family:'Space Mono',monospace;font-size:12.5px;color:#e4e0ea;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:6px;padding:5px 9px;overflow-wrap:anywhere}
+  .btn{all:unset;cursor:pointer;font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.14em;padding:6px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.16);color:var(--dim)}
+  .btn:hover{color:#fff;border-color:#fff}
+  .btn:focus-visible{outline:2px solid var(--a);outline-offset:2px}
+  .btn.primary{background:rgba(124,92,255,.16);border-color:rgba(124,92,255,.6);color:#fff}
+
+  /* mini mock of the dashboard field */
+  .mock{margin-top:12px;border:1px solid var(--line);border-radius:8px;overflow:hidden;font-size:12.5px;max-width:460px}
+  .mock .bar{display:flex;gap:6px;padding:8px 10px;background:rgba(255,255,255,.04);border-bottom:1px solid var(--line)}
+  .mock .bar i{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.18)}
+  .mock .row{display:flex;justify-content:space-between;gap:12px;padding:9px 12px;border-bottom:1px solid rgba(255,255,255,.05);color:var(--mute)}
+  .mock .row:last-child{border:0}
+  .mock .row span:last-child{color:var(--text);font-family:'Space Mono',monospace;font-size:11.5px}
+  .mock .hl{background:rgba(124,92,255,.10);box-shadow:inset 2px 0 0 var(--a)}
+
+  /* troubleshooting */
+  details{border:1px solid var(--line);background:var(--panel);border-radius:12px;padding:0 18px}
+  details+details{margin-top:8px}
+  summary{cursor:pointer;list-style:none;padding:16px 0;display:flex;gap:12px;align-items:baseline}
+  summary::-webkit-details-marker{display:none}
+  summary::before{content:"+";font-family:'Space Mono',monospace;color:var(--a);width:12px;flex:none}
+  details[open] summary::before{content:"–"}
+  summary .q{font-size:14.5px;font-weight:500}
+  details .a{padding:0 0 16px 24px;font-size:14px}
+  details .a p{font-size:14px}
+
+  footer{margin-top:72px;padding-top:20px;border-top:1px solid rgba(255,255,255,.07);display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-family:'Space Mono',monospace;font-size:10.5px;letter-spacing:.14em;color:var(--mute)}
+  footer a{color:var(--dim);border-color:rgba(255,255,255,.2)}
+
+  .toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,20px);opacity:0;transition:.2s;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.16em;background:#15101f;border:1px solid var(--line);padding:10px 16px;border-radius:999px;pointer-events:none}
+  .toast.on{opacity:1;transform:translate(-50%,0)}
+
+  [hidden]{display:none!important}
+  @media (max-width:560px){
+    main{padding:44px 16px 72px}
+    .paths{grid-template-columns:1fr}
+    ol.steps>li{grid-template-columns:1fr;gap:6px}
+  }
+  @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.toast{transition:none}}
+</style>
+</head>
+<body>
+<main>
+  <div class="eyebrow"><span class="dot"></span>ROOMTONE · Spotify</div>
+  <h1>Connect<br>Spotify</h1>
+  <p class="lede">The visualizer works without Spotify. Connecting it adds the <b>track name</b>, <b>colours from the album art</b> and <b>word-by-word lyrics</b>. It takes about two minutes.</p>
+
+  <div class="note">
+    <b>One rule from Spotify you need to know.</b> ROOMTONE connects through a small “developer app” on Spotify’s website, identified by a <b>Client ID</b>. Since March 2026, Spotify only lets that app work while <b>the account that created it has Premium</b>, and only for <b>up to five people</b> its owner adds by name. The people signing in can be on a free account.
+  </div>
+
+  <h2>Which one are you?</h2>
+  <div class="paths" role="group" aria-label="Choose your setup">
+    <button class="path" type="button" data-path="own" aria-pressed="true">
+      <span class="k">A</span><span class="t">I have Spotify Premium</span>
+      <span class="d">Make your own app. You can also add up to four friends to it.</span>
+    </button>
+    <button class="path" type="button" data-path="friend" aria-pressed="false">
+      <span class="k">B</span><span class="t">I’m on Spotify Free</span>
+      <span class="d">A friend with Premium adds you to their app and sends you their Client ID.</span>
+    </button>
+  </div>
+
+  <!-- Path A -->
+  <section id="own" data-panel="own">
+    <h2>Make your own Spotify app</h2>
+    <p>Do this once. Sign in with your <b>Premium</b> account.</p>
+    <ol class="steps">
+      <li><div>
+        <h3>Open the developer dashboard</h3>
+        <p>Sign in with your normal Spotify login and accept the developer terms if it asks.</p>
+        <div class="copy"><a class="btn primary" href="https://developer.spotify.com/dashboard" target="_blank" rel="noopener">OPEN THE DASHBOARD ↗</a></div>
+      </div></li>
+      <li><div>
+        <h3>Create an app</h3>
+        <p>Click <b>Create app</b>. Any name and description will do, for example “ROOMTONE”. Leave Website empty.</p>
+      </div></li>
+      <li><div>
+        <h3>Paste this exact Redirect URI</h3>
+        <p>In the <b>Redirect URIs</b> box, paste this and click <b>Add</b>. It must match exactly: <b>127.0.0.1</b>, not “localhost”, and no slash at the end.</p>
+        <div class="copy"><code id="uri">http://127.0.0.1:8888/callback</code><button class="btn" type="button" data-copy="uri">COPY</button></div>
+      </div></li>
+      <li><div>
+        <h3>Tick “Web API” and save</h3>
+        <p>Under <b>Which API/SDKs are you planning to use?</b>, tick <b>Web API</b>. Agree to the terms and click <b>Save</b>.</p>
+      </div></li>
+      <li><div>
+        <h3>Add everyone who will sign in</h3>
+        <p>Open your app → <b>Settings</b> → <b>User Management</b>. Add <b>yourself</b> with the name and email of your Spotify account, then each friend (up to five people in total). Use the email on their Spotify account, not just any email they have.</p>
+        <p>Skip this and Spotify refuses the sign-in with a 403.</p>
+      </div></li>
+      <li><div>
+        <h3>Copy the Client ID into ROOMTONE</h3>
+        <p>On the app’s <b>Settings</b> page, copy the <b>Client ID</b>: 32 letters and numbers. You do <b>not</b> need the Client secret.</p>
+        <div class="mock" aria-hidden="true">
+          <div class="bar"><i></i><i></i><i></i></div>
+          <div class="row"><span>App name</span><span>ROOMTONE</span></div>
+          <div class="row hl"><span>Client ID</span><span>3f9c…e21a ← this one</span></div>
+          <div class="row"><span>Client secret</span><span>not needed</span></div>
+        </div>
+        <p>In ROOMTONE, open <b>Settings → Spotify → Set up</b>, paste it and press <b>Save</b>. Your browser opens. Click <b>Agree</b>, then go back to the app.</p>
+      </div></li>
+    </ol>
+    <div class="note"><b>Sharing with a friend on Free?</b> Add them in step 05, then send them your Client ID. It is not a password: on its own it cannot sign anyone in or see your account.</div>
+  </section>
+
+  <!-- Path B -->
+  <section id="friend" data-panel="friend" hidden>
+    <h2>Use a friend’s Spotify app</h2>
+    <p>You need one friend with Spotify <b>Premium</b>. You can stay on Free.</p>
+    <ol class="steps">
+      <li><div>
+        <h3>Send your friend your Spotify email</h3>
+        <p>The email on <b>your Spotify account</b> (Spotify app → Settings → Account). Also tell them the name on the account.</p>
+      </div></li>
+      <li><div>
+        <h3>They set up an app and add you<span class="who">your friend</span></h3>
+        <p>If they do not have one yet, they follow <a href="#own" data-goto="own">path A</a>. Then they add you in <b>Settings → User Management</b> and send you their <b>Client ID</b>.</p>
+        <div class="copy"><button class="btn" type="button" data-copy="share">COPY A MESSAGE TO SEND THEM</button></div>
+      </div></li>
+      <li><div>
+        <h3>Paste their Client ID into ROOMTONE</h3>
+        <p>In ROOMTONE, open <b>Settings → Spotify → Set up</b>. If an old Client ID is saved, click <b>Use a different Client ID</b> first. Paste theirs and press <b>Save</b>.</p>
+      </div></li>
+      <li><div>
+        <h3>Sign in with your own account</h3>
+        <p>Your browser opens on Spotify. Sign in as <b>you</b>, not your friend, and click <b>Agree</b>. Then go back to ROOMTONE.</p>
+      </div></li>
+    </ol>
+    <div class="note">Their app holds up to five people, them included. If Premium on their account lapses, everyone on it loses the connection until it is renewed. The visualizer itself keeps working either way.</div>
+  </section>
+
+  <section id="help">
+    <h2>If it doesn’t connect</h2>
+    <p>ROOMTONE shows Spotify’s reason under the Connect button. Find it below.</p>
+
+    <details>
+      <summary><span class="q">“the account that created the app does not have Premium”</span></summary>
+      <div class="a"><p>The Client ID belongs to an account without Premium, and Spotify has switched that app off. Either the owner gets Premium (it can take a few hours to start working again), or you switch to a Client ID from someone who has it: <a href="#friend" data-goto="friend">path B</a>.</p></div>
+    </details>
+    <details>
+      <summary><span class="q">“Spotify refused your account for this Client ID” / 403</span></summary>
+      <div class="a"><p>The account you signed in with is not on the app’s <b>User Management</b> list. The app owner adds your <b>Spotify account’s</b> email there. If they did, check that you signed in with that same account in the browser. Spotify may have kept you logged in as someone else; log out at <a href="https://www.spotify.com/logout/" target="_blank" rel="noopener">spotify.com/logout</a> and connect again.</p></div>
+    </details>
+    <details>
+      <summary><span class="q">“INVALID_CLIENT: Invalid redirect URI” in the browser</span></summary>
+      <div class="a"><p>The Redirect URI on the app does not match exactly. It must be <code>http://127.0.0.1:8888/callback</code>: <b>http</b>, <b>127.0.0.1</b> (not localhost), port <b>8888</b>, no trailing slash. Edit it in the app’s Settings and press Save at the bottom.</p></div>
+    </details>
+    <details>
+      <summary><span class="q">“INVALID_CLIENT: Invalid client” or “That does not contain a Client ID”</span></summary>
+      <div class="a"><p>The Client ID was copied wrong, or the app was deleted. Copy it again from the app’s Settings page. It is 32 characters. The Client secret is a different value and will not work.</p></div>
+    </details>
+    <details>
+      <summary><span class="q">“Another program may be using port 8888”</span></summary>
+      <div class="a"><p>Something else on your PC is using port 8888 for a moment. Close other music tools or dev servers and try again. Restarting the PC also clears it.</p></div>
+    </details>
+    <details>
+      <summary><span class="q">“timed out waiting for Spotify to redirect back”</span></summary>
+      <div class="a"><p>The browser page was left open for more than three minutes, or closed. Press Connect again and finish within three minutes.</p></div>
+    </details>
+    <details>
+      <summary><span class="q">Connected, but play / pause / skip don’t work</span></summary>
+      <div class="a"><p>Spotify only allows playback control on <b>your own</b> Premium account. On Free you still get the track, the album colours and the lyrics. Control playback from the Spotify app instead.</p></div>
+    </details>
+    <details>
+      <summary><span class="q">Settings → Spotify opened a blank screen</span></summary>
+      <div class="a"><p>That was a bug in ROOMTONE 0.3.0 and is fixed in the next release. <a href="https://github.com/ToneFloor/roomtone/releases/latest" target="_blank" rel="noopener">Download the latest version</a>.</p></div>
+    </details>
+  </section>
+
+  <section>
+    <div class="card">
+      <h3>What this gives ROOMTONE access to</h3>
+      <p style="margin-top:8px">Only what is playing and basic playback control. The sign-in token is kept in Windows Credential Manager on your PC and is never uploaded. ROOMTONE has no server. <a href="https://github.com/ToneFloor/roomtone#privacy" target="_blank" rel="noopener">Privacy details</a>.</p>
+    </div>
+  </section>
+
+  <footer>
+    <span>ROOMTONE</span>
+    <span><a href="https://github.com/ToneFloor/roomtone" target="_blank" rel="noopener">GITHUB</a> &nbsp;·&nbsp; <a href="https://github.com/ToneFloor/roomtone/issues/new/choose" target="_blank" rel="noopener">REPORT A PROBLEM</a></span>
+  </footer>
+</main>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script>
+  const SHARE = "Can you add me to your ROOMTONE Spotify app? In developer.spotify.com/dashboard, open the app, then Settings > User Management, and add my Spotify email: [your email]. Then send me the Client ID from the same Settings page. Steps: https://tonefloor.github.io/roomtone/spotify/";
+  const toast = (t) => { const el = document.getElementById('toast'); el.textContent = t; el.classList.add('on'); clearTimeout(toast.h); toast.h = setTimeout(() => el.classList.remove('on'), 1600); };
+  function pick(path, scroll) {
+    document.querySelectorAll('.path').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.path === path)));
+    document.querySelectorAll('[data-panel]').forEach((p) => { p.hidden = p.dataset.panel !== path; });
+    if (scroll) document.getElementById(path).scrollIntoView();
+    try { history.replaceState(null, '', '#' + path); } catch (e) {}
+  }
+  document.querySelectorAll('.path').forEach((b) => b.addEventListener('click', () => pick(b.dataset.path, false)));
+  document.querySelectorAll('[data-goto]').forEach((a) => a.addEventListener('click', (e) => { e.preventDefault(); pick(a.dataset.goto, true); }));
+  document.querySelectorAll('[data-copy]').forEach((b) => b.addEventListener('click', () => {
+    const text = b.dataset.copy === 'share' ? SHARE : document.getElementById(b.dataset.copy).textContent;
+    navigator.clipboard.writeText(text).then(() => toast('COPIED'), () => toast('COULD NOT COPY'));
+  }));
+  if (location.hash === '#friend' || location.hash === '#own') pick(location.hash.slice(1), false);
+</script>
+</body>
+</html>
