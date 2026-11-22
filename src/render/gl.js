@@ -114,8 +114,33 @@ export class Renderer {
       if (t) { gl.deleteFramebuffer(t.fbo); gl.deleteTexture(t.tex); }
     }
 
+    this.targets = this.makeTargets(w, h);
+    this.write = 0;
+  }
+
+  /**
+   * Give a preset its own feedback history.
+   *
+   * The dock thumbnails are all drawn by one small renderer, one after another.
+   * Sharing a single feedback buffer would have each preset smearing the one
+   * before it into its trails, so each gets a pair of its own, made on first
+   * use. At thumbnail size sixteen of them cost less than one full frame.
+   */
+  slot(id) {
+    if (!this.ok) return;
+    const slots = this.slots || (this.slots = new Map());
+    if (this.slotId !== undefined) slots.set(this.slotId, { targets: this.targets, write: this.write });
+    let st = slots.get(id);
+    if (!st) st = { targets: this.makeTargets(this.size[0], this.size[1]), write: 0 };
+    this.targets = st.targets;
+    this.write = st.write;
+    this.slotId = id;
+  }
+
+  makeTargets(w, h) {
+    const gl = this.gl;
     const internal = this.float ? gl.RGBA16F : gl.RGBA8;
-    this.targets = [0, 1].map(() => {
+    return [0, 1].map(() => {
       const tex = gl.createTexture();
       gl.bindTexture(gl.TEXTURE_2D, tex);
       gl.texStorage2D(gl.TEXTURE_2D, 1, internal, w, h);
@@ -130,7 +155,6 @@ export class Renderer {
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
       return { tex, fbo };
     });
-    this.write = 0;
   }
 
   /* -- shader compilation ------------------------------------------------ */

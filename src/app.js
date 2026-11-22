@@ -26,11 +26,19 @@
 
 import { render } from './runtime.js';
 import { Renderer, decodeSpectrum } from './render/gl.js';
+import { createAutoSync } from './sync.js';
 import { parsePreset } from './render/preset.js';
 import { Typography } from './render/typography.js';
 
 const { invoke } = window.__TAURI__.core;
 const { listen } = window.__TAURI__.event;
+
+// A second window on another monitor loads this same page with ?output=N. It
+// is a whole ROOMTONE of its own — its own preset, its own sliders — that keeps
+// its settings under its own name so it cannot overwrite the main window's.
+const OUTPUT = new URLSearchParams(location.search).get('output');
+const SCOPE = OUTPUT === null ? null : 'output-' + OUTPUT;
+const THUMB_W = 136, THUMB_H = 84;
 
 const PROPS = { accent: '#7c5cff', intensity: 1 };
 
@@ -67,7 +75,21 @@ const FPS_LABELS = [
   '120 FPS', '144 FPS', '165 FPS', '240 FPS', 'UNLIMITED',
 ];
 
+/**
+ * How many pixels the shader pass is allowed, by quality step. The canvas is
+ * stretched to the window either way; these looks are soft, so the middle step
+ * is hard to tell from the top one and costs about a third less.
+ */
+const QUALITY_PIXELS = [1280 * 720, 2240 * 1260, 2560 * 1440];
+const QUALITY_LABELS = ['PERFORMANCE', 'BALANCED', 'FULL'];
+
+/** Auto-cycle: 0 off, -1 on every new track, otherwise seconds between changes. */
+const CYCLE_STEPS = [0, -1, 60, 180, 300, 600];
+const CYCLE_LABELS = ['OFF', 'EVERY TRACK', '1 MIN', '3 MIN', '5 MIN', '10 MIN'];
+
 const FORMATTERS = {
+  quality: (v) => QUALITY_LABELS[Math.round(v)] || 'BALANCED',
+  cycle: (v) => CYCLE_LABELS[Math.round(v)] || 'OFF',
   safeFlash: (v) => ['OFF', 'GENTLE', 'STRONG'][Math.round(v)] || 'OFF',
   fpsCap: (v) => FPS_LABELS[Math.round(v)] || 'DISPLAY',
   intensity: pct, bassGain: pct, reach: pct, bloom: pct,
@@ -84,6 +106,9 @@ const DEFAULTS = {
   safeFlash: 0,
   // Index into FPS_STEPS. 0 = follow the display.
   fpsCap: 0,
+  // Index into QUALITY_PIXELS and CYCLE_STEPS.
+  quality: 1,
+  cycle: 0,
 };
 
 /**
@@ -101,6 +126,8 @@ const SHORTCUTS = [
   { k: 'F', d: 'Fullscreen' },
   { k: 'ESC', d: 'Leave fullscreen, or close a panel' },
   { k: 'K', d: 'Karaoke' },
+  { k: 'V', d: 'Favourite this preset' },
+  { k: 'N', d: 'Next preset (favourites first)' },
   { k: 'L', d: 'Lyric sheet' },
   { k: 'S', d: 'Settings' },
   { k: 'D', d: 'Diagnostics' },
@@ -410,6 +437,7 @@ class Roomtone {
 
   /** Nudge this track's offset and remember it. */
   async nudge(ms) {
+    if (this.lyrics) this._syncManual = this.lyrics.track_id;
     this.trackOffset = Math.max(-4000, Math.min(4000, this.trackOffset + ms));
     this.say(`LYRIC OFFSET ${this.trackOffset > 0 ? '+' : ''}${Math.round(this.trackOffset)} MS`);
     const id = this.np && this.np.track_id;
@@ -539,7 +567,10 @@ class Roomtone {
   applyCoverTexture() {
     if (!this.coverUrl) { this.gl.uploadCover(null); return; }
     const img = new Image();
-    img.onload = () => this.gl.uploadCover(img);
+    img.onload = () => {
+      this.gl.uploadCover(img);
+      if (this.thumbGl && this.thumbGl.ok) this.thumbGl.uploadCover(img);
+    };
     img.src = this.coverUrl;
   }
 
@@ -677,6 +708,8 @@ class Roomtone {
           group: preset.group.toUpperCase(),
           gap: head && i > 0 ? '16px' : '0px',
           on: () => this.choosePreset(preset.id),
+          star: (e) => { e.stopPropagation(); this.toggleFav(preset.id); },
+          fav: (this.favs || []).includes(preset.id),
         };
       }),
       echoes: [0, 1, 2, 3, 4, 5, 6],
@@ -887,8 +920,37 @@ class Roomtone {
       this.useShaders = true;
       this.say('SHADERS ON · THIS ONE HAS NO CSS VERSION');
     }
+    this._cycleAt = performance.now();
+    this._activeAt = this._cycleAt;
     this.setState({ preset: id });
     this.saveSoon();
+  }
+
+  toggleFav(id) {
+    const favs = this.favs || (this.favs = []);
+    const i = favs.indexOf(id);
+    if (i >= 0) favs.splice(i, 1); else favs.push(id);
+    const preset = this.presets.find((p) => p.id === id);
+    this.say((i >= 0 ? 'UNSTARRED · ' : 'FAVOURITE · ') + ((preset && preset.name) || id).toUpperCase());
+    this.saveSoon();
+    this.draw();
+  }
+
+  /**
+   * The next preset in the rotation. Favourites when there are at least two,
+   * everything otherwise — and never one that draws lyrics while there are no
+   * lyrics to draw, or while karaoke already has the words.
+   */
+  nextPreset() {
+    const hasLyr = !!(this.lyrics && this.lyrics.lines.length);
+    const usable = (p) => (!LYRIC_PRESETS.includes(p.id) || (hasLyr && !this.state.karaoke))
+      && (this.useShaders || this.hasFallback(p.id));
+    const favs = this.favs || [];
+    let pool = this.presets.filter((p) => favs.includes(p.id) && usable(p));
+    if (pool.length < 2) pool = this.presets.filter(usable);
+    if (!pool.length) return;
+    const at = pool.findIndex((p) => p.id === this.state.preset);
+    this.choosePreset(pool[(at + 1) % pool.length].id);
   }
 
   pickPreset(index) {
@@ -937,6 +999,8 @@ class Roomtone {
         R('intensity', 'Intensity', 0.2, 1.6, 0.05, 'Overall reaction depth. Drop to ~0.4 for something calmer.'),
         R('bassGain', 'Bass weight', 0.3, 2, 0.05, 'How much low end drives the motion versus mids and highs.'),
         R('safeFlash', 'Flash guard', 0, 2, 1, 'Off · Gentle · Strong. Limits how fast and how far the whole screen can change brightness. Reduces, but cannot eliminate, flashing — see the photosensitivity note in the README.'),
+        R('quality', 'Render quality', 0, 2, 1, 'How many pixels the visuals are drawn at. Balanced is hard to tell from Full on these looks and is easier on the graphics card; Performance is for laptops.'),
+        R('cycle', 'Auto-cycle', 0, 5, 1, 'Changes preset on its own. It goes through your favourites if you have starred two or more (the star on each tile, or V), and through everything otherwise.'),
         R('fpsCap', 'Frame rate', 0, 9, 1, 'Caps the render loop. Anything above your monitor\u2019s refresh rate needs the frame-rate unlock switch as well, and a restart \u2014 without it the browser paces every frame to the display.'),
       ],
     }];
@@ -974,7 +1038,7 @@ class Roomtone {
     const r = this.root;
     this.n = {};
     if (!r) return;
-    ['edge', 'bar', 'word', 'bloom', 'stage', 'cover', 'ring', 'prog', 'tcur', 'tdur', 'chrome', 'lyrLayer', 'nolyr', 'barsRow', 'chip', 'launch', 'pbtn', 'coverWrap', 'coverGlow', 'title', 'artist', 'devlabel',
+    ['edge', 'bar', 'word', 'bloom', 'stage', 'cover', 'ring', 'prog', 'tcur', 'tdur', 'chrome', 'lyrLayer', 'nolyr', 'barsRow', 'chip', 'launch', 'pbtn', 'pstar', 'pcanvas', 'coverWrap', 'coverGlow', 'title', 'artist', 'devlabel',
       'editLayer', 'editBg', 'editStage', 'editStack', 'erow', 'echo', 'livetag',
       'playerFrame', 'panel', 'slider', 'sliderVal', 'csrc', 'kbhint',
       'editArt', 'editArtTex', 'editScan', 'editMeta',
@@ -1121,10 +1185,17 @@ class Roomtone {
   start() {
     this.onMove = () => { this.chromeUntil = performance.now() + 2800; };
     this.onKey = (e) => {
+      this._activeAt = performance.now();
       const k = e.key.toLowerCase();
       const s = this.state;
       // Escape is the way out of fullscreen before it is anything else — a
       // borderless window with no title bar and no exit is a trap.
+      if (SCOPE && k === 'escape' && !s.settings && !s.lyrics && !s.karaoke && !s.debug) {
+        this.saveNow();
+        invoke('output_close', { display: Number(OUTPUT) }).catch(() => {});
+        return;
+      }
+      if (SCOPE && k === 'f') return;
       if (k === 'escape' && this.fullscreen) { this.setFullscreen(false); return; }
       // Enter starts from the setup screen, unless it is confirming a field.
       if (k === 'enter' && s.screen === 'onboard') {
@@ -1178,6 +1249,8 @@ class Roomtone {
       if (k === '[') { this.nudge(-50); return; }
       if (k === ']') { this.nudge(50); return; }
       if (k === '\\') { this.autoAlign(); return; }
+      if (k === 'v') { this.toggleFav(s.preset); return; }
+      if (k === 'n') { this.nextPreset(); return; }
       if (k === 'b') { this.lyricArt = !this.lyricArt; this.sync(); this.saveSoon(); return; }
       if (k === ' ') { e.preventDefault(); this.control(this.np && this.np.is_playing ? 'pause' : 'play'); }
       // 1-9 then 0 for the tenth. The dock can hold more than ten presets —
@@ -1305,7 +1378,15 @@ class Roomtone {
     const quiet = !playing && !(this.audio.rms > 1e-4);
     if (!quiet) this._quietAt = 0;
     else if (!this._quietAt) this._quietAt = now;
+    // Auto-cycle on a timer, only while there is something to react to.
+    const every = CYCLE_STEPS[Math.round(s.cfg.cycle) || 0] || 0;
+    if (every > 0 && !quiet && !s.settings) {
+      if (!this._cycleAt) this._cycleAt = now;
+      if (now - this._cycleAt > every * 1000) this.nextPreset();
+    }
+
     this.idle = quiet && now - this._quietAt > 5000 && now > this.chromeUntil + 600
+      && now - (this._activeAt || 0) > 5000
       && !s.settings && !s.lyrics && !s.tray && !s.credits && !s.debug;
     const chromeOn = now < this.chromeUntil + 600 || this._dockDrawn !== this.drawN;
 
@@ -1435,19 +1516,31 @@ class Roomtone {
         list.forEach((e, j) => {
           const age = L - 1 - j;
           const w = W[ci - age];
-          e.textContent = w ? w.w : '';
-          e.style.fontSize = 11.5 * Math.pow(0.66, age) + 'vw';
-          e.style.opacity = String(Math.max(0, 1 - age * 0.22));
+          // Setting the text replaces the text node, and with type this size
+          // that is a full layout and repaint. It used to happen sixty times a
+          // second for words that changed twice a second. Write on change.
+          const text = w ? w.w : '';
+          if (e._text !== text) { e._text = text; e.textContent = text; }
+          if (e._age !== age) {
+            e._age = age;
+            e.style.fontSize = 11.5 * Math.pow(0.66, age) + 'vw';
+            e.style.opacity = String(Math.max(0, 1 - age * 0.22));
+            e.style.color = age === 0 ? '#fff' : `rgba(255,255,255,${Math.max(0.12, 0.5 - age * 0.09)})`;
+            e.style.filter = age === 0 ? 'none' : `blur(${age * 1.8}px)`;
+            if (age !== 0) { e.style.transform = 'scale(1)'; e.style.textShadow = 'none'; }
+          }
           if (age === 0) {
-            e.style.filter = `blur(${att * 13}px)`;
+            // The landing blur lasts a fifth of a second; after it the filter
+            // comes off entirely rather than sitting at blur(0).
+            const blur = att > 0.02 ? `blur(${(att * 13).toFixed(1)}px)` : 'none';
+            if (e._blur !== blur) { e._blur = blur; e.style.filter = blur; }
             e.style.transform = `translateY(${att * 30}px) scale(${1 + kickNow * 0.05 * k + att * 0.12})`;
-            e.style.color = '#fff';
-            e.style.textShadow = `0 0 ${(24 + bass * 90 * k) * PW.type}px ${acc}`;
+            // A glow whose radius followed the bass repainted the biggest text
+            // on screen every frame. Fixed radius; the scale carries the beat.
+            const glow = `0 0 56px ${acc}`;
+            if (e._glow !== glow) { e._glow = glow; e.style.textShadow = glow; }
           } else {
-            e.style.filter = `blur(${age * 1.8}px)`;
-            e.style.transform = 'scale(1)';
-            e.style.color = `rgba(255,255,255,${Math.max(0.12, 0.5 - age * 0.09)})`;
-            e.style.textShadow = 'none';
+            e._blur = null; e._glow = null;
           }
         });
       }
@@ -1577,6 +1670,9 @@ class Roomtone {
     // The dock is invisible most of the time. Its thumbnails only need their
     // pulse while somebody can see them.
     if (chromeOn) this._dockDrawn = this.drawN;
+    // Performance quality keeps the drawn sketches instead.
+    if (chromeOn && shaded && now < this.chromeUntil && Math.round(s.cfg.quality) > 0) this.thumbStep(now, k, acc);
+    if (playing) this.autoSyncStep(now);
     if (chromeOn) this.each('pfx', (e) => {
       const w = PW[e.getAttribute('data-v')] || 0;
 
@@ -1588,6 +1684,11 @@ class Roomtone {
       e.style.boxShadow = on ? '0 0 0 1px ' + acc + ', 0 0 18px ' + acc : 'none';
     });
     this.each('plabel', (e) => { e.style.color = e.getAttribute('data-v') === P ? '#fff' : '#9d98a6'; });
+    if (chromeOn) this.each('pstar', (e) => {
+      const on = e.getAttribute('data-on') === 'true';
+      e.style.color = on ? acc : 'rgba(255,255,255,0.75)';
+      e.style.opacity = on ? '1' : '';
+    });
 
     // While the CSS renderer is on, the presets with no CSS twin say so on the
     // thumbnail rather than showing an empty rectangle.
@@ -1652,7 +1753,9 @@ class Roomtone {
     this.karaokeFrame(acc, energy, kickNow, t);
     this.each('stageWrap', (e) => {
       e.style.transition = 'opacity 0.28s ease, transform 0.34s cubic-bezier(0.2,0.9,0.2,1)';
-      this.anim(e, 'stageWrap', 'opacity', s.karaoke ? '0' : '1');
+      // On a second screen the cover and title step aside with the controls,
+      // so what is left is the visual and nothing else.
+      this.anim(e, 'stageWrap', 'opacity', s.karaoke || (SCOPE && now >= this.chromeUntil) ? '0' : '1');
       // A slight drop as it leaves, so the cover reads as stepping back rather
       // than switching off.
       this.anim(e, 'stageWrapT', 'transform', s.karaoke ? 'translateY(10px) scale(0.98)' : 'none');
@@ -1768,7 +1871,7 @@ class Roomtone {
     // for 33 megapixels a frame, and no preset needs that to look right.
     const wantW = Math.round(window.innerWidth * dpr);
     const wantH = Math.round(window.innerHeight * dpr);
-    const budget = 1440 * 2560;
+    const budget = QUALITY_PIXELS[Math.round(this.state.cfg.quality)] || QUALITY_PIXELS[1];
     const scale = Math.min(1, Math.sqrt(budget / Math.max(1, wantW * wantH)));
     this.gl.resize(Math.max(2, Math.round(wantW * scale)), Math.max(2, Math.round(wantH * scale)));
 
@@ -1889,7 +1992,114 @@ class Roomtone {
         on: s.debug,
         go: () => this.toggleOverlay('debug'),
       },
+      {
+        k: 'autosync',
+        label: 'Auto-sync lyrics',
+        hint: 'Listens for where the singing starts and lines the lyrics up with it on its own, once it is sure. Your own nudges with [ and ] always win for that track.',
+        on: this.autoSync !== false,
+        go: () => { this.autoSync = this.autoSync === false; this.saveSoon(); this.draw(); },
+      },
+      // One switch per monitor. Each opens a second, borderless ROOMTONE on
+      // that screen with its own preset — the main window stays where it is.
+      ...(SCOPE ? [] : this.displays.map((d, i) => ({
+        k: 'output' + i,
+        label: 'Show on ' + (d.name || 'display ' + (i + 1)).replace(/^[\\.]+/, ''),
+        hint: d.width + ' \u00d7 ' + d.height + (d.primary ? ' \u00b7 primary' : '') + '. Fills that screen with its own visuals and its own preset. Press Esc on it to close it.',
+        on: (this.outputs || []).includes(i),
+        go: () => this.toggleOutput(i),
+      }))),
     ].map((t) => ({ ...t, state: t.on ? 'ON' : 'OFF' }));
+  }
+
+  async toggleOutput(i) {
+    const open = (this.outputs || []).includes(i);
+    try {
+      await invoke(open ? 'output_close' : 'output_open', { display: i });
+      this.outputs = await invoke('outputs_open');
+    } catch (e) {
+      this.say(String(e).toUpperCase().slice(0, 70));
+    }
+    this.saveSoon();
+    this.draw();
+  }
+
+  /**
+   * Line the lyrics up with the singing, without being asked.
+   *
+   * Called every few seconds while a track with lyrics plays. The estimator
+   * only answers once two readings in a row agree, so a drum fill cannot drag
+   * the sheet around. A track the user has nudged by hand is left alone.
+   */
+  autoSyncStep(now) {
+    if (this.autoSync === false || !this.lyrics || !this.lyrics.lines.length) return;
+    if (this._syncManual === this.lyrics.track_id) return;
+    if (now - (this._syncAt || 0) < 4000) return;
+    this._syncAt = now;
+    const S = this._sync || (this._sync = createAutoSync());
+    if (this._syncTrack !== this.lyrics.track_id) {
+      this._syncTrack = this.lyrics.track_id;
+      S.reset();
+    }
+    const starts = this.lyrics.lines.filter((l) => l.text).map((l) => l.t);
+    let decision = null;
+    try { decision = S.feed(this.energyLog, starts, now / 1000); } catch (e) { return; }
+    if (!decision) return;
+    // Same sign as the manual key: the estimator says how late the singing is,
+    // the offset is how far to pull the sheet back.
+    const ms = Math.max(-4000, Math.min(4000, Math.round(-decision.offset * 1000)));
+    if (Math.abs(ms - this.trackOffset) < 60) return;
+    this.trackOffset = ms;
+    this.say(`AUTO-SYNC ${ms > 0 ? '+' : ''}${ms} MS`);
+    invoke('lyric_offset_set', { trackId: this.lyrics.track_id, ms }).catch(() => {});
+  }
+
+  /**
+   * Live thumbnails.
+   *
+   * A second, tiny WebGL canvas that the dock tiles copy from. It is a context
+   * of its own on purpose: reading pixels back out of the main one would stall
+   * it every frame, and this way the main pass never knows the thumbnails
+   * exist. Two tiles a frame, only while the dock is on screen.
+   */
+  thumbStep(now, intensity, acc) {
+    const tiles = this.n.pcanvas || [];
+    if (!tiles.length || !this.presets.length) return;
+    if (!this.thumbGl) {
+      const c = document.createElement('canvas');
+      this.thumbGl = new Renderer(c);
+      this.thumbLoaded = new Map();
+      if (this.thumbGl.ok) {
+        this.thumbGl.resize(THUMB_W, THUMB_H);
+        this.applyCoverTexture();
+      }
+    }
+    const T = this.thumbGl;
+    if (!T.ok || T.gl.isContextLost()) return;
+    if (this.lastBins) T.uploadSpectrum(this.lastBins);
+
+    for (let n = 0; n < 2; n++) {
+      this._thumbI = ((this._thumbI || 0) + 1) % tiles.length;
+      const el = tiles[this._thumbI];
+      const preset = this.presets.find((p) => p.id === el.getAttribute('data-v'));
+      if (!preset) continue;
+      // Compiled on first need, and again if the file changed on disk.
+      if (this.thumbLoaded.get(preset.id) !== preset.source) {
+        this.thumbLoaded.set(preset.id, preset.source);
+        if (T.load(preset)) { el._dead = true; continue; }
+        el._dead = false;
+      }
+      if (el._dead) continue;
+      T.slot(preset.id);
+      T.draw([{ preset, weight: 1, params: this.params[preset.id] || {} }], {
+        bass: this.audio.bass, mid: this.audio.mid, high: this.audio.high,
+        kick: Math.min(this.audio.kick, 0.4),
+        beat: this.beatClock, time: now / 1000, intensity,
+        art: hexToRgb(acc), art2: hexToRgb(this.accent2()),
+      });
+      const ctx = el._ctx || (el._ctx = el.getContext('2d'));
+      ctx.drawImage(T.canvas, 0, 0, THUMB_W, THUMB_H);
+      if (!el._shown) { el._shown = true; el.style.opacity = '1'; }
+    }
   }
 
 
@@ -2039,6 +2249,9 @@ class Roomtone {
       params: JSON.parse(JSON.stringify(this.params || {})),
       useShaders: this.useShaders,
       lyricArt: this.lyricArt,
+      favs: (this.favs || []).slice(),
+      autoSync: this.autoSync !== false,
+      outputs: SCOPE ? [] : (this.outputs || []).slice(),
       // Read by Rust at startup, before the web view exists.
       unlockVsync: !!this.unlockVsync,
       // Latched, not read from the current screen.
@@ -2088,6 +2301,9 @@ class Roomtone {
 
     if (typeof saved.useShaders === 'boolean') this.useShaders = saved.useShaders;
     if (typeof saved.lyricArt === 'boolean') this.lyricArt = saved.lyricArt;
+    if (typeof saved.autoSync === 'boolean') this.autoSync = saved.autoSync;
+    if (!SCOPE && Array.isArray(saved.outputs)) this.wantOutputs = saved.outputs.filter((i) => Number.isInteger(i) && i >= 0 && i < this.displays.length);
+    if (Array.isArray(saved.favs)) this.favs = saved.favs.filter((id) => this.presets.some((x) => x.id === id));
     if (typeof saved.unlockVsync === 'boolean') this.unlockVsync = saved.unlockVsync;
     if (saved.params && typeof saved.params === 'object') this.params = saved.params;
     if (saved.tourDone) next.tour = -1;
@@ -2118,7 +2334,7 @@ class Roomtone {
   saveNow() {
     clearTimeout(this._saveTimer);
     try {
-      invoke('ui_state_set', { state: this.snapshot() }).catch(() => {});
+      invoke('ui_state_set', SCOPE ? { state: this.snapshot(), scope: SCOPE } : { state: this.snapshot() }).catch(() => {});
     } catch (e) { /* never let a failed save break the interface */ }
   }
 
@@ -2384,14 +2600,15 @@ class Roomtone {
           acc + ' ' + b.toFixed(1) + '%,rgba(255,255,255,0.13) ' + b.toFixed(1) + '%)';
 
         const active = p > 0 && p < 1;
-        span.style.textShadow = active ? '0 0 ' + (12 + energy * 44) + 'px ' + acc : 'none';
+        const glow = active ? '0 0 30px ' + acc : 'none';
+        if (span._glow !== glow) { span._glow = glow; span.style.textShadow = glow; }
         span.style.transform = active ? 'translateY(' + (-kick * 5).toFixed(2) + 'px)' : 'none';
       }
 
       const lineP = Math.max(0, Math.min(1, (lp - cur.t) / Math.max(0.2, cur.end - cur.t)));
       K.rail.style.width = (lineP * 100).toFixed(1) + '%';
       K.rail.style.background = acc;
-      K.rail.style.boxShadow = '0 0 ' + (8 + energy * 22) + 'px ' + acc;
+      if (K._railAcc !== acc) { K._railAcc = acc; K.rail.style.boxShadow = '0 0 16px ' + acc; }
       K.cur.style.opacity = done ? '0.45' : '1';
     }
 
@@ -2562,7 +2779,7 @@ canvas.addEventListener('webglcontextrestored', () => {
 listen('audio', ({ payload }) => {
   app.audio = payload;
   const bins = decodeSpectrum(payload.spectrum);
-  if (bins) app.gl.uploadSpectrum(bins);
+  if (bins) { app.gl.uploadSpectrum(bins); app.lastBins = bins; }
 });
 
 listen('lyrics', ({ payload }) => app.setLyrics(payload));
@@ -2576,6 +2793,11 @@ listen('track', ({ payload }) => {
   // Re-render only when something structural changed — not every 3 seconds.
   if (!app.lyrics || app.lyrics.track_id !== payload.track_id) app.pullLyrics();
 
+  if (before && before.track_id && payload.track_id && before.track_id !== payload.track_id
+      && CYCLE_STEPS[Math.round(app.state.cfg.cycle) || 0] === -1) {
+    app.nextPreset();
+  }
+
   const changed = !before
     || before.track_id !== payload.track_id
     || before.is_playing !== payload.is_playing
@@ -2585,6 +2807,13 @@ listen('track', ({ payload }) => {
 
 async function refreshInfo() {
   try { app.info = await invoke('audio_info'); } catch (e) { /* leave as-is */ }
+  // An output closes itself with Esc; notice, so its switch does not lie.
+  if (!SCOPE && app.state.settings) {
+    try {
+      const open = await invoke('outputs_open');
+      if (JSON.stringify(open) !== JSON.stringify(app.outputs || [])) { app.outputs = open; app.draw(); }
+    } catch (e) { /* older core */ }
+  }
 }
 
 (async function boot() {
@@ -2619,8 +2848,21 @@ async function refreshInfo() {
   // validated against what actually exists on this machine right now, and it
   // cannot check a preset id against a list that has not loaded yet.
   try {
-    app.restore(await invoke('ui_state_get'));
+    app.restore(await invoke('ui_state_get', SCOPE ? { scope: SCOPE } : undefined));
   } catch (e) { /* first run, or an unreadable config — carry on with defaults */ }
+
+  if (SCOPE) {
+    // A second screen has no setup to do and no tour to take.
+    app.configured = true;
+    app.state.screen = 'player';
+    app.state.tour = -1;
+  } else {
+    // Put back the screens that were showing last time.
+    for (const i of app.wantOutputs || []) {
+      try { await invoke('output_open', { display: i }); } catch (e) { /* that monitor is gone */ }
+    }
+    try { app.outputs = await invoke('outputs_open'); } catch (e) { app.outputs = []; }
+  }
 
   app.refreshAutostart();
 

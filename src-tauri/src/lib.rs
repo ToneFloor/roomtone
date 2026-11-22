@@ -28,6 +28,7 @@ mod autostart;
 mod config;
 mod log;
 mod lyrics;
+mod outputs;
 mod shaders;
 mod spotify;
 #[cfg(windows)]
@@ -332,17 +333,20 @@ fn ui_log(message: String) {
 
 /// The interface's remembered state, or nothing on a first run.
 #[tauri::command]
-fn ui_state_get() -> Option<serde_json::Value> {
-    config::ui_state()
+fn ui_state_get(scope: Option<String>) -> Option<serde_json::Value> {
+    config::ui_state_scoped(scope.as_deref())
 }
 
 /// Save the interface's state.
 ///
 /// Called from a debounce on the front end, not on every keystroke — a slider
 /// drag emits values continuously and this touches the disk.
+///
+/// `scope` names an output window (`output-1`) so it keeps its own entry and can
+/// never overwrite the main window's; `None` is the main window.
 #[tauri::command]
-fn ui_state_set(state: serde_json::Value) -> Result<(), String> {
-    config::set_ui_state(state)
+fn ui_state_set(state: serde_json::Value, scope: Option<String>) -> Result<(), String> {
+    config::set_ui_state_scoped(scope.as_deref(), state)
 }
 
 /// Is ROOMTONE in the Windows startup list? Read from the registry every time,
@@ -577,11 +581,22 @@ pub fn run() {
         })
         .on_window_event(|window, event| {
             use tauri::WindowEvent;
+            // Output windows are borderless and never carry the main window's
+            // geometry; closing one must not touch main or the app.
+            if window.label() != "main" {
+                return;
+            }
             match event {
                 WindowEvent::Moved(_) | WindowEvent::Resized(_) => remember_geometry(window),
                 // On the way out the throttle does not apply: this is the last
                 // chance to record where the window ended up.
                 WindowEvent::CloseRequested { .. } | WindowEvent::Destroyed => {
+                    // The app only exits once every window is gone, so outputs
+                    // must go with main.
+                    if matches!(event, WindowEvent::Destroyed) {
+                        use tauri::Manager as _;
+                        outputs::close_all(window.app_handle());
+                    }
                     if window.is_decorated().unwrap_or(false)
                         && !window.is_minimized().unwrap_or(false)
                         && !window.is_maximized().unwrap_or(false)
@@ -631,6 +646,9 @@ pub fn run() {
             shader_presets,
             shader_stamps,
             open_shader_folder,
+            outputs::output_open,
+            outputs::output_close,
+            outputs::outputs_open,
         ])
         .run(tauri::generate_context!())
         .expect("error while running ROOMTONE");

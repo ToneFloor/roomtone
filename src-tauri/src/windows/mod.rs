@@ -140,3 +140,39 @@ pub fn set_fullscreen(app: &AppHandle, on: bool) -> Result<(), String> {
 
     Ok(())
 }
+
+/// Make a window cover a monitor rectangle exactly, without taking focus.
+///
+/// Same reasoning as `set_fullscreen`: only a `WS_POPUP` window whose rect equals
+/// the monitor's makes the shell treat it as fullscreen and draw over the
+/// taskbar. `SWP_NOACTIVATE` keeps the main window usable while an output opens
+/// on another screen; the rectangle is in physical pixels, as monitors report it.
+pub fn cover_rect(
+    window: &tauri::WebviewWindow,
+    x: i32,
+    y: i32,
+    width: u32,
+    height: u32,
+) -> Result<(), String> {
+    use windows::Win32::UI::WindowsAndMessaging::SWP_NOACTIVATE;
+
+    let handle = window
+        .hwnd()
+        .map_err(|e| format!("no window handle: {e}"))?;
+    let hwnd = HWND(handle.0 as *mut _);
+    unsafe {
+        let style = GetWindowLongPtrW(hwnd, GWL_STYLE);
+        let bare = ((style as u32) & !WS_OVERLAPPEDWINDOW.0) | WS_POPUP.0;
+        SetWindowLongPtrW(hwnd, GWL_STYLE, bare as isize);
+        SetWindowPos(
+            hwnd,
+            Some(HWND_TOP),
+            x,
+            y,
+            width as i32,
+            height as i32,
+            SWP_FRAMECHANGED | SWP_NOOWNERZORDER | SWP_SHOWWINDOW | SWP_NOACTIVATE,
+        )
+        .map_err(|e| format!("could not place the output window: {e}"))
+    }
+}

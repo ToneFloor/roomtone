@@ -240,7 +240,9 @@ export class Typography {
       const dx = jolt * (i % 2 ? -14 : 11);
       const dy = jolt * (i % 2 ? 9 : -9);
       const pop = isActive ? 1 + punch * 0.035 + cut * 0.08 : 1;
-      el.style.filter = `blur(${jolt * 4.5}px)`;
+      // No filter at rest: blur(0) still costs a filter pass on every row.
+      const rowBlur = jolt > 0.03 ? `blur(${(jolt * 4.5).toFixed(1)}px)` : 'none';
+      if (el._blur !== rowBlur) { el._blur = rowBlur; el.style.filter = rowBlur; }
       el.style.transform = `translate(${dx}px, ${dy}px) scale(${pop})`;
       el.style.alignSelf = ANCHORS[shot.anchor][2] === 'right'
         ? 'flex-end'
@@ -284,17 +286,22 @@ export class Typography {
       el.style.top = `${spot[1]}%`;
       el.style.opacity = String(live ? Math.max(0, 0.55 - i * 0.06) : 0);
       el.style.transform = `rotate(${spot[2]}deg) scale(${1 + punch * 0.08})`;
-      el.style.filter = `blur(${cut * 2.4}px)`;
+      const echoBlur = cut > 0.03 ? `blur(${(cut * 2.4).toFixed(1)}px)` : 'none';
+      if (el._blur !== echoBlur) { el._blur = echoBlur; el.style.filter = echoBlur; }
     });
 
     // Background: the frame itself breathes and re-grades on the beat.
     (n.editStage || []).forEach((el) => {
       el.style.transform = `rotate(${punch * 0.2 - cut * 0.35}deg) scale(${1 + cut * 0.012})`;
-      el.style.filter = `blur(${cut * 2.0}px)`;
+      const stageBlur = cut > 0.03 ? `blur(${(cut * 2.0).toFixed(1)}px)` : 'none';
+      if (el._blur !== stageBlur) { el._blur = stageBlur; el.style.filter = stageBlur; }
     });
     (n.editArt || []).forEach((el) => {
-      el.style.filter =
-        `blur(${14 + (1 - punch) * 12}px) saturate(${1.05 + punch * 0.45}) brightness(${0.62 + punch * 0.3})`;
+      // A full-window blur whose radius changed every frame was the single
+      // most expensive thing this preset did. The blur is fixed now, so the
+      // browser keeps the blurred image; the beat moves opacity and scale.
+      if (!el._fixed) { el._fixed = true; el.style.filter = 'blur(20px) saturate(1.3) brightness(0.86)'; }
+      el.style.opacity = String(0.7 + punch * 0.3);
       el.style.transform = `scale(${1.08 + punch * 0.05 + cut * 0.02})`;
     });
     (n.editArtTex || []).forEach((el) => { el.style.opacity = String(0.22 + punch * 0.3); });

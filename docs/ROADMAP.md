@@ -44,6 +44,15 @@ as done until it has been run and checked on a real machine.
   work while shaders are on, layout measured twice a second instead of every
   frame, 30 fps when nothing is playing, and no audio frames sent to a
   minimised window
+- Favourites (the star on each tile, or V) and auto-cycle: on a timer or on
+  every new track, through the favourites when there are two or more
+- Live dock thumbnails from a second, tiny WebGL context, so the main pass is
+  never stalled by them; the drawn sketches remain underneath as the fallback
+- Automatic lyric sync: an onset-correlation estimator with a confidence
+  measure, applied only when two readings in a row agree; manual nudges win
+- More screens: a borderless ROOMTONE per extra monitor, each with its own
+  preset and settings, reopened on the next launch
+- A render-quality setting (Performance, Balanced, Full)
 - Motion polish: every panel animates out as well as in, and the transitions
   that the stylesheet had always declared actually run
 - The interface reports its own uncaught errors into the log, and the log

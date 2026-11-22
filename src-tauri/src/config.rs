@@ -49,6 +49,13 @@ pub struct AppConfig {
     #[serde(default)]
     pub window: Option<WindowBox>,
 
+    /// Remembered interface state for each output window, keyed by its scope
+    /// (`output-1`, ...). Kept apart from `ui` so a secondary monitor's view can
+    /// never overwrite the main window's settings, and so older config files
+    /// without the key still load.
+    #[serde(default)]
+    pub output_states: serde_json::Map<String, serde_json::Value>,
+
     /// Anything written by a newer version of ROOMTONE than this one.
     ///
     /// Without this, opening an older build would silently delete settings it
@@ -153,6 +160,23 @@ pub fn ui_state() -> Option<serde_json::Value> {
 pub fn set_ui_state(value: serde_json::Value) -> Result<(), String> {
     let mut cfg = load_file_only();
     cfg.ui = Some(value);
+    save(&cfg)
+}
+
+/// Remembered state for one scope. `None` is the main window's own state.
+pub fn ui_state_scoped(scope: Option<&str>) -> Option<serde_json::Value> {
+    match scope {
+        None => ui_state(),
+        Some(key) => load().output_states.get(key).cloned(),
+    }
+}
+
+pub fn set_ui_state_scoped(scope: Option<&str>, value: serde_json::Value) -> Result<(), String> {
+    let Some(key) = scope else {
+        return set_ui_state(value);
+    };
+    let mut cfg = load_file_only();
+    cfg.output_states.insert(key.to_string(), value);
     save(&cfg)
 }
 
